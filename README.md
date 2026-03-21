@@ -1,109 +1,98 @@
-# 🩺 Oura Claude Dashboard v2.0
+# 🩺 Oura Health Dashboard v3.0
 
-A personal health intelligence dashboard for Oura Ring — built with Claude.
+A personal health intelligence dashboard for Oura Ring — works as a hosted web app or locally. No setup required.
 
-Goes way beyond the Oura app with features no other tool has:
-
-### v2.0 — Sleep Science
-- **Sleep Cycle Explainer** — visualizes your actual hypnogram (deep/light/REM/awake) with heart rate overlay, so you can *see* your sleep architecture, not just a score
-- **Deep Sleep Decoder** — compares your top 25% vs bottom 25% deep sleep nights to discover *your* personal deep sleep triggers (steps, bedtime, stress, alcohol)
-- **Tonight's Sleep Plan** — a coaching card with 2 specific actions you can take *tonight* to optimize tomorrow's recovery
-
-### v1.0 — Core Analytics
-- **7-Day Readiness Forecast** — predicts your readiness score for the next week based on your personal 60-day patterns
-- **Anomaly Detector** — flags days where metrics crashed and auto-detects likely causes
-- **Personal Correlations** — discovers relationships unique to *your* biology (does alcohol wreck *your* deep sleep? do steps improve *your* recovery?)
-- **Sleep Debt Tracker** — running 30-day cumulative deficit with payback estimate
-- **60-Day Heatmap** — visual history of every readiness score
-- **Lifestyle Experiment Logger** — nightly check-in that builds your personal sleep model over time
-
-![Dashboard v2.0](assets/dashboard-v2.png)
+**[→ Try it live](https://oura-claude.vercel.app)** — paste your Oura token and go.
 
 ---
 
-## Setup (2 minutes)
+## Features
 
-### 1. Get your Oura token
-Go to [cloud.ouraring.com/personal-access-tokens](https://cloud.ouraring.com/personal-access-tokens) and create a Personal Access Token.
+### v3.0 — Web App
+- **Token-based onboarding** — paste your Oura Personal Access Token in the browser, see your data instantly
+- **Works for anyone** — no installation, no config files, no terminal
+- **Privacy-first** — your token lives only in your browser's localStorage, sent directly to the Oura API
 
-### 2. Configure
+### v2.0 — Sleep Science
+- **Sleep Cycle Explainer** — your actual hypnogram (deep/light/REM/awake) visualized with heart rate overlay
+- **Deep Sleep Decoder** — compares your top 25% vs bottom 25% deep sleep nights to find *your* personal triggers
+- **Tonight's Sleep Plan** — 2 specific, personalized actions you can take tonight
+
+### v1.0 — Core Analytics
+- **7-Day Readiness Forecast** — predicted readiness scores based on your 60-day personal patterns
+- **Anomaly Detector** — flags crash days and auto-detects likely causes
+- **Personal Correlations** — finds relationships unique to *your* biology
+- **Sleep Debt Tracker** — 30-day running deficit with payback estimate
+- **60-Day Heatmap** — full readiness history at a glance
+
+---
+
+## Use it online (recommended)
+
+1. Go to **[oura-claude.vercel.app](https://oura-claude.vercel.app)**
+2. Get a token at [cloud.ouraring.com/personal-access-tokens](https://cloud.ouraring.com/personal-access-tokens)
+3. Paste it in — your dashboard loads instantly
+
+Your token is stored only in your browser. It's never saved on any server.
+
+---
+
+## Run it locally
+
 ```bash
-cp .env.example .env
-# Edit .env and paste your token
-```
-
-### 3. Run the dashboard
-```bash
+git clone https://github.com/tbonepitt/oura-claude.git
+cd oura-claude
 ./run.sh
 ```
 
-Then open [http://localhost:7891](http://localhost:7891) in your browser.
+Then open [http://localhost:7891](http://localhost:7891) and paste your token in the browser.
 
----
-
-## What's included
-
-| File | What it does |
-|------|-------------|
-| `dashboard/server.py` | Local API server — proxies Oura API, computes correlations + forecast + sleep decoder |
-| `dashboard/index.html` | The dashboard UI (6 tabs: Today, Forecast, Trends, Anomalies, Sleep Science, Insights) |
-| `health_monitor.py` | Daily health report (run manually or via scheduler) |
-| `insights_engine.py` | Deep 60-day pattern analysis — run anytime for full report |
-| `evening_checkin.py` | Nightly lifestyle logger — builds your personal sleep model |
-
----
-
-## Running the CLI tools
-
+**Optional:** Create a `.env` file to skip the token prompt:
 ```bash
-# Full 60-day pattern analysis
-source .env && python3 insights_engine.py
-
-# Daily health snapshot
-source .env && python3 health_monitor.py
-
-# Log tonight's lifestyle factors (pipe in JSON)
-echo '{"alcohol": false, "late_meal": false, "screen_time_late": true, "stress_level": 2, "exercise": true, "caffeine_after_2pm": false}' \
-  | source .env && python3 evening_checkin.py
+cp .env.example .env
+# Edit .env and add your token — browser prompt will be skipped
 ```
 
 ---
 
-## Requirements
+## Deploy your own instance
 
-- Python 3.8+ (no external packages — stdlib only)
-- An Oura Ring with API access
+### Vercel (free, 1 click)
+1. Fork this repo on GitHub
+2. Go to [vercel.com](https://vercel.com) → **Add New Project** → import your fork
+3. Deploy — done. Your own private instance is live.
 
 ---
 
-## How the forecast works
+## File structure
 
-The 7-day readiness forecast is built from:
-1. **Day-of-week baselines** — your historical average readiness for each day of the week
-2. **Recent trend** — whether your readiness is improving or declining over the last 7 days vs prior 7
-3. **HRV momentum** — whether your HRV balance is trending up or down
-4. **Activity load** — high recent activity suppresses next-day readiness
-
-The model is personalized — it uses *your* 60-day history, not population averages.
+| File | What it does |
+|------|-------------|
+| `api/data.py` | Vercel serverless function — fetches Oura data, runs all analysis |
+| `public/index.html` | The dashboard UI — used by both hosted and local modes |
+| `dashboard/server.py` | Local HTTP server — serves `public/index.html` and proxies `/api/data` |
+| `vercel.json` | Vercel routing config |
+| `run.sh` | Local launcher |
 
 ---
 
 ## How the Deep Sleep Decoder works
 
-The decoder splits your last 60 nights into top 25% and bottom 25% by deep sleep duration, then compares the conditions across those nights:
+Splits your last 60 nights into top 25% and bottom 25% by deep sleep, then compares:
+- **Steps** — did you move more on your best nights?
+- **Bedtime** — is there an optimal window for your chronotype?
+- **Calories** — does activity drive deeper sleep?
+- **Restlessness** — do restless nights cluster?
 
-- **Steps** — did you move more on your best deep sleep days?
-- **Bedtime** — is there an optimal window for *your* chronotype?
-- **Calories burned** — does higher activity drive deeper sleep?
-- **Restlessness** — do restless nights predict each other?
-
-Each finding is translated into a plain-English action: *"Your best deep sleep nights happened when you hit 8,400+ steps."*
+Each finding becomes a plain-English action.
 
 ---
 
 ## Privacy
 
-Your Oura token lives only in your local `.env` file. The dashboard runs entirely on your machine. No data is sent anywhere except to the official Oura API.
+- Your token is stored in `localStorage` — never on any server
+- All analysis runs server-side in the serverless function, but no data is persisted
+- The local version is fully offline after startup (data goes browser → local server → Oura API)
 
 ---
 

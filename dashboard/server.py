@@ -8,19 +8,24 @@ from urllib.error import URLError
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from collections import defaultdict
 
-TOKEN = os.environ["OURA_TOKEN"]
-BASE  = "https://api.ouraring.com/v2/usercollection"
-PORT  = 7891
-DIR   = os.path.dirname(os.path.abspath(__file__))
+BASE      = "https://api.ouraring.com/v2/usercollection"
+PORT      = 7891
+# Serve public/index.html (one source of truth for local + hosted)
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HTML_PATH = os.path.join(REPO_ROOT, "public", "index.html")
 
-def fetch(ep, start, end):
-    url = f"{BASE}/{ep}?start_date={start}&end_date={end}"
-    req = Request(url, headers={"Authorization": f"Bearer {TOKEN}"})
+def fetch(ep, start, end, token):
+    if start and end:
+        url = f"{BASE}/{ep}?start_date={start}&end_date={end}"
+    else:
+        url = f"{BASE}/{ep}"
+    req = Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
         with urlopen(req, timeout=12) as r:
-            return json.loads(r.read())["data"]
+            body = json.loads(r.read())
+            return body.get("data", body)
     except URLError:
-        return []
+        return [] if (start and end) else {}
 
 def mean(vals):
     v = [x for x in vals if x is not None]
@@ -509,17 +514,17 @@ def calc_sleep_debt(sleep_detail, target_hours=8.0):
     return round(debt_hours, 1), log
 
 # ── Main data builder ──────────────────────────────────────────────────────────
-def build_data():
+def build_data(token):
     today   = date.today()
     end     = str(today)
     start60 = str(today - timedelta(days=60))
     start7  = str(today - timedelta(days=7))
 
-    sleep    = fetch("daily_sleep",    start60, end)
-    ready    = fetch("daily_readiness",start60, end)
-    activity = fetch("daily_activity", start60, end)
-    detail   = fetch("sleep",          start60, end)
-    hr_data  = fetch("heartrate",      start7,  end)
+    sleep    = fetch("daily_sleep",    start60, end,  token)
+    ready    = fetch("daily_readiness",start60, end,  token)
+    activity = fetch("daily_activity", start60, end,  token)
+    detail   = fetch("sleep",          start60, end,  token)
+    hr_data  = fetch("heartrate",      start7,  end,  token)
 
     # Index activity by day for decoder
     activity_map = {a["day"]: a for a in activity}
@@ -731,7 +736,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/data":
-            data = build_data()
+            # Token: from browser header (web app mode) or env var (local mode)
+            token = self.headers.get("X-Oura-Token", "").strip() or \
+                    os.environ.get("OURA_TOKEN", "")
+            if not token:
+                body = json.dumps({"error": "missing_token"}).encode()
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", len(body))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            data = build_data(token)
             body = json.dumps(data).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -740,8 +756,7 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         else:
-            path = os.path.join(DIR, "index.html")
-            with open(path, "rb") as f:
+            with open(HTML_PATH, "rb") as f:
                 body = f.read()
             self.send_response(200)
             self.send_header("Content-Type", "text/html")
