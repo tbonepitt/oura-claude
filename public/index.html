@@ -203,6 +203,17 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
 .token-link:hover{text-decoration:underline}
 .change-token-btn{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:5px 12px;font-size:12px;cursor:pointer;transition:all .15s}
 .change-token-btn:hover{border-color:var(--accent);color:var(--accent)}
+.setup-or{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--muted);font-size:12px}
+.setup-or::before,.setup-or::after{content:'';flex:1;height:1px;background:var(--border)}
+.demo-btn{width:100%;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);padding:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.demo-btn:hover{border-color:var(--accent);color:var(--accent)}
+.token-error{color:var(--red);font-size:12px;margin-top:-6px;margin-bottom:10px;text-align:left;display:none}
+.token-validating{color:var(--muted);font-size:12px;margin-top:-6px;margin-bottom:10px;text-align:left;display:none}
+/* Demo banner */
+.demo-banner{background:linear-gradient(90deg,rgba(99,102,241,.15),rgba(168,85,247,.15));border-bottom:1px solid rgba(99,102,241,.3);padding:8px 28px;text-align:center;font-size:13px;display:none}
+.demo-banner span{color:var(--accent);font-weight:600}
+.demo-exit-btn{background:var(--accent);border:none;border-radius:6px;color:#fff;padding:3px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-left:12px;transition:opacity .15s}
+.demo-exit-btn:hover{opacity:.8}
 </style>
 </head>
 <body>
@@ -228,7 +239,11 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
       </div>
     </div>
     <input type="password" id="token-input" class="token-input" placeholder="Paste your Oura token here…" autocomplete="off" />
-    <button class="connect-btn" onclick="connectToken()">Connect my Oura Ring →</button>
+    <div id="token-error" class="token-error">⚠️ Invalid token — double-check and try again.</div>
+    <div id="token-validating" class="token-validating">⏳ Validating token…</div>
+    <button class="connect-btn" id="connect-btn" onclick="connectToken()">Connect my Oura Ring →</button>
+    <div class="setup-or">or</div>
+    <button class="demo-btn" onclick="loadDemo()">👀 Preview with demo data</button>
     <p class="setup-privacy">🔒 Your token is stored only in your browser. It's sent directly to the Oura API — never stored on any server.</p>
   </div>
 </div>
@@ -242,6 +257,11 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
     <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
   </div>
 </header>
+
+<div class="demo-banner" id="demoBanner">
+  <span>👀 Demo Mode</span> — This is fictitious data. <a class="token-link" href="#" onclick="exitDemo()">Connect your Oura Ring</a> to see your real health data.
+  <button class="demo-exit-btn" onclick="exitDemo()">Connect Ring →</button>
+</div>
 
 <nav>
   <div class="tab active" data-page="today">Today</div>
@@ -980,37 +1000,81 @@ function renderSleepScience(hyp, dec) {
 
 // ── Token Management ──────────────────────────────────────────────────────────
 const STORAGE_KEY = 'oura_token';
+const DEMO_KEY    = 'oura_demo_mode';
 
-function getToken() {
-  return localStorage.getItem(STORAGE_KEY) || '';
-}
+function getToken() { return localStorage.getItem(STORAGE_KEY) || ''; }
+function isDemo()   { return localStorage.getItem(DEMO_KEY) === '1'; }
 
-function connectToken() {
-  const inp = document.getElementById('token-input');
+async function connectToken() {
+  const inp   = document.getElementById('token-input');
   const token = inp.value.trim();
+  const errEl = document.getElementById('token-error');
+  const valEl = document.getElementById('token-validating');
+  const btn   = document.getElementById('connect-btn');
+
+  errEl.style.display = 'none';
   if (!token) {
     inp.classList.add('error');
-    inp.placeholder = 'Token is required — paste it here';
+    errEl.textContent  = '⚠️ Please paste your token first.';
+    errEl.style.display = 'block';
     return;
   }
-  localStorage.setItem(STORAGE_KEY, token);
+
+  // Validate token with the API before saving
+  btn.disabled = true; btn.textContent = 'Validating…';
+  valEl.style.display = 'block';
+  try {
+    const res = await fetch('/api/validate', { headers: { 'X-Oura-Token': token } });
+    const data = await res.json();
+    if (!res.ok || !data.valid) {
+      inp.classList.add('error');
+      errEl.textContent  = '⚠️ Invalid token — double-check and try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Connect my Oura Ring →';
+      valEl.style.display = 'none';
+      return;
+    }
+    // Valid — save and load
+    localStorage.setItem(STORAGE_KEY, token);
+    localStorage.removeItem(DEMO_KEY);
+    document.getElementById('setup-screen').style.display = 'none';
+    loadData();
+  } catch(e) {
+    errEl.textContent  = '⚠️ Could not reach server. Try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Connect my Oura Ring →';
+    valEl.style.display = 'none';
+  }
+}
+
+function loadDemo() {
+  localStorage.setItem(DEMO_KEY, '1');
+  localStorage.removeItem(STORAGE_KEY);
   document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('demoBanner').style.display = 'block';
   loadData();
+}
+
+function exitDemo() {
+  localStorage.removeItem(DEMO_KEY);
+  location.reload();
 }
 
 function changeToken() {
   if (!confirm('Change your Oura token? You\'ll need to paste a new one.')) return;
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(DEMO_KEY);
   location.reload();
 }
 
-// Show setup screen if no token saved
+// Show setup if no token and not demo
 (function() {
-  const screen = document.getElementById('setup-screen');
-  if (!getToken()) {
-    screen.style.display = 'flex';
+  if (!getToken() && !isDemo()) {
+    document.getElementById('setup-screen').style.display = 'flex';
   }
-  // Allow Enter key on token input
+  if (isDemo()) {
+    document.getElementById('demoBanner').style.display = 'block';
+  }
   document.getElementById('token-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') connectToken();
   });
@@ -1018,25 +1082,28 @@ function changeToken() {
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 async function loadData(){
-  if (!getToken()) return;
+  if (!getToken() && !isDemo()) return;
+
   document.getElementById('today').innerHTML='<div class="loading"><div class="spinner"></div><div style="color:var(--muted)">Fetching your biometrics…</div></div>';
-  try{
-    const res = await fetch('/api/data', {
-      headers: { 'X-Oura-Token': getToken() }
-    });
-    if (res.status === 401) {
-      localStorage.removeItem(STORAGE_KEY);
-      location.reload();
-      return;
+
+  try {
+    let res;
+    if (isDemo()) {
+      res = await fetch('/api/demo');
+    } else {
+      res = await fetch('/api/data', { headers: { 'X-Oura-Token': getToken() } });
+      if (res.status === 401) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload(); return;
+      }
     }
     const d = await res.json();
-    // Personalize the header with user's first name
-    if (d.user && d.user.first_name) {
+    if (d.user && d.user.first_name && !isDemo()) {
       document.getElementById('userName').textContent = d.user.first_name + "'s";
       document.title = d.user.first_name + "'s Health Dashboard";
     }
     render(d);
-  }catch(e){
+  } catch(e) {
     document.getElementById('today').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data. Check your token or try again.</div></div>';
   }
 }

@@ -3,7 +3,7 @@
 Token is read from the X-Oura-Token request header. Never stored server-side.
 """
 
-import json, os, math
+import json, os, math, random
 from datetime import date, timedelta, datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
@@ -422,7 +422,215 @@ def build_data(token):
         "forecast":forecast,"anomalies":anomalies,"sleep_debt":sleep_debt,"debt_log":debt_log,
         "heatmap":heatmap,"hypnogram":hypnogram,"deep_decoder":deep_decoder,"tonight_card":tonight_card}
 
+# ── Demo data generator ────────────────────────────────────────────────────────
+
+def generate_demo_data():
+    """Realistic demo data — seeded so it's consistent across loads."""
+    rng = random.Random(42)
+    today = date.today()
+    DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+
+    days, sleep_scores, ready_scores, act_scores = [], [], [], []
+    steps_series, calories, deep_series, rem_series = [], [], [], []
+    rest_series, eff_series, hrv_series, rhr_series, temp_series = [], [], [], [], []
+
+    # Simulate a 60-day pattern: decent baseline with a rough patch around day 35-42
+    for i in range(60, 0, -1):
+        d = str(today - timedelta(days=i))
+        days.append(d)
+        rough = 28 <= i <= 42   # rough week
+        base_sleep = rng.gauss(62 if rough else 78, 7)
+        base_ready = rng.gauss(58 if rough else 76, 8)
+        sleep_scores.append(max(40, min(99, round(base_sleep + rng.gauss(0, 3)))))
+        ready_scores.append(max(40, min(99, round(base_ready + rng.gauss(0, 3)))))
+        act_scores.append(max(30, min(99, round(rng.gauss(58 if rough else 74, 10)))))
+        steps_series.append(round(rng.gauss(5200 if rough else 8400, 1800)))
+        calories.append(round(rng.gauss(280 if rough else 420, 80)))
+        deep_series.append(max(10, min(95, round(rng.gauss(45 if rough else 68, 12)))))
+        rem_series.append(max(10, min(95, round(rng.gauss(58, 10)))))
+        rest_series.append(max(20, min(95, round(rng.gauss(50 if rough else 72, 12)))))
+        eff_series.append(max(50, min(95, round(rng.gauss(72, 8)))))
+        hrv_series.append(max(40, min(95, round(rng.gauss(55 if rough else 74, 8)))))
+        rhr_series.append(max(40, min(80, round(rng.gauss(58 if rough else 52, 4)))))
+        temp_series.append(round(rng.gauss(0.3 if rough else -0.1, 0.2), 2))
+
+    # Day-of-week avgs
+    dow_sleep = defaultdict(list); dow_ready = defaultdict(list); dow_steps = defaultdict(list)
+    for i, d in enumerate(days):
+        dow = date.fromisoformat(d).weekday()
+        dow_sleep[dow].append(sleep_scores[i]); dow_ready[dow].append(ready_scores[i]); dow_steps[dow].append(steps_series[i])
+
+    # Correlations (realistic)
+    corrs = {"steps_deep": 0.41, "sleep_ready": 0.63, "cal_deep": 0.38,
+             "hrv_sleep": 0.55, "temp_sleep": -0.29, "rest_ready": 0.48}
+
+    # Forecast
+    forecast = []
+    for i in range(1, 8):
+        fdate = today + timedelta(days=i)
+        dow = fdate.weekday()
+        score = clamp(round(rng.gauss(76, 6)), 60, 92)
+        if score >= 85:   rec, intensity, color = "Hard training", "💪 Push it", "#22c55e"
+        elif score >= 75: rec, intensity, color = "Moderate effort", "🟢 Go for it", "#3b82f6"
+        elif score >= 65: rec, intensity, color = "Easy day", "🟡 Take it easy", "#f59e0b"
+        else:             rec, intensity, color = "Recovery", "🔴 Rest day", "#ef4444"
+        forecast.append({"date":str(fdate),"dow":DOW[dow],"month_day":fdate.strftime("%b %d"),
+                         "score":score,"rec":rec,"intensity":intensity,"color":color,"is_weekend":dow>=5})
+
+    # Anomalies — two real-looking crash events
+    anomalies = [
+        {"date": str(today - timedelta(days=35)), "label": "Sleep score dropped", "metric": "sleep",
+         "score": 51, "avg": 76, "drop": 25, "dow": "Mon",
+         "causes": ["very restless night", "off-schedule bedtime", "low HRV balance"]},
+        {"date": str(today - timedelta(days=29)), "label": "Readiness dropped", "metric": "readiness",
+         "score": 48, "avg": 74, "drop": 26, "dow": "Sun",
+         "causes": ["poor overnight recovery", "elevated resting HR", "elevated body temp (+0.6°C)"]},
+        {"date": str(today - timedelta(days=12)), "label": "Activity crashed", "metric": "activity",
+         "score": 44, "avg": 72, "drop": 28, "dow": "Thu",
+         "causes": ["only 1,842 steps", "very high activity prior (14,200 steps)"]},
+    ]
+
+    # Hypnogram — realistic last-night pattern
+    bedtime_dt = datetime.combine(today - timedelta(days=1), datetime.strptime("22:38", "%H:%M").time())
+    phase_pattern = (
+        "4444" +         # fall asleep (~20 min awake)
+        "1111111111" +   # first deep block (50 min)
+        "222222" +       # light (30 min)
+        "333333" +       # REM (30 min)
+        "44" +           # brief wake
+        "11111111" +     # second deep block (40 min)
+        "2222222222" +   # light (50 min)
+        "33333333" +     # REM (40 min)
+        "2222" +         # light (20 min)
+        "3333" +         # REM (20 min)
+        "44"             # wake
+    )
+    hyp_labels, hyp_stages, hyp_colors = [], [], []
+    COLOR_MAP = {"1":"#3b82f6","2":"#6366f1","3":"#a855f7","4":"#374151"}
+    for i, ch in enumerate(phase_pattern):
+        t = bedtime_dt + timedelta(minutes=i*5)
+        hyp_labels.append(t.strftime("%H:%M"))
+        hyp_stages.append(STAGE_Y.get(ch, 3))
+        hyp_colors.append(COLOR_MAP.get(ch, "#374151"))
+    hr_items = [max(42, min(72, round(rng.gauss(54, 6)))) for _ in phase_pattern]
+    hypnogram = {
+        "labels": hyp_labels, "stages": hyp_stages, "colors": hyp_colors,
+        "hr": hr_items, "hrv": [],
+        "deep_min": phase_pattern.count("1")*5, "light_min": phase_pattern.count("2")*5,
+        "rem_min": phase_pattern.count("3")*5, "awake_min": phase_pattern.count("4")*5,
+        "total_min": len(phase_pattern)*5,
+        "bedtime": bedtime_dt.isoformat()[:16],
+        "wake_time": (bedtime_dt + timedelta(minutes=len(phase_pattern)*5)).isoformat()[:16],
+        "efficiency": 88, "restless_periods": 12, "avg_hr": 54, "avg_hrv": 38, "lowest_hr": 46,
+    }
+
+    # Deep sleep decoder
+    deep_decoder = {
+        "science": {
+            "what_is_deep": "Deep sleep (slow-wave sleep) is your body's repair mode — growth hormone, memory consolidation, tissue repair, and brain waste clearance.",
+            "your_avg": 72.0, "your_std": 18.0, "ideal_min": 90, "ideal_pct": 20, "your_pct": 22,
+            "status": "fair",
+            "status_msg": "Your average of 72 min is getting there. Small tweaks could push you into the optimal zone.",
+            "when_it_happens": "Most deep sleep happens in the first 3-4 hours of the night. Late bedtimes and alcohol cut into this window.",
+            "why_variable": "Your deep sleep swings 18 min night to night — something specific is disrupting it on bad nights.",
+        },
+        "findings": [
+            {"icon":"🚶","title":"Steps matter for YOU",
+             "body":"Best deep sleep nights: 9,800 steps avg. Worst: 5,200. That's a 4,600-step gap.",
+             "action":"Aim for 9,000+ steps on days you want deep sleep.","impact":"high"},
+            {"icon":"🛏️","title":"Earlier bedtimes = more deep sleep",
+             "body":"Best nights: in bed ~10:28pm. Worst: ~12:14am.",
+             "action":"Target 10:30pm as your bedtime for better deep sleep.","impact":"high"},
+            {"icon":"🌀","title":"Restlessness is killing your deep sleep",
+             "body":"Bad nights: 28 restless periods vs 8 on good nights.",
+             "action":"Track alcohol, late meals, heat, or stress.","impact":"high"},
+        ],
+        "best_nights":  [{"day":str(today-timedelta(days=5)), "deep_min":105,"steps":10200,"bed":"10:22pm"},
+                         {"day":str(today-timedelta(days=11)),"deep_min":98, "steps":9800, "bed":"10:41pm"},
+                         {"day":str(today-timedelta(days=18)),"deep_min":94, "steps":9100, "bed":"10:28pm"}],
+        "worst_nights": [{"day":str(today-timedelta(days=36)),"deep_min":28, "steps":4200, "bed":"12:31am"},
+                         {"day":str(today-timedelta(days=30)),"deep_min":32, "steps":5100, "bed":"12:08am"},
+                         {"day":str(today-timedelta(days=22)),"deep_min":38, "steps":6200, "bed":"11:52pm"}],
+        "distribution": [rng.randint(30,105) for _ in range(60)],
+        "distribution_days": days,
+        "top_avg": 99.0, "bot_avg": 33.0, "overall_avg": 72.0,
+    }
+
+    # Tonight card
+    tonight_card = {
+        "verdict": "ok", "verdict_msg": "Tonight is fixable. A couple of things to do before bed.",
+        "verdict_color": "#f59e0b", "optimal_bed": "10:28pm",
+        "steps_today": 6100, "best_steps": 9800, "hrv": 71, "debt": 4.2,
+        "actions": [
+            {"priority":1,"icon":"🚶","headline":"Take a 20-minute walk before bed",
+             "body":"You've done 6,100 steps today. Your best deep sleep nights average 9,800. A short walk tonight could add 15–25 minutes of deep sleep.","urgency":"high"},
+            {"priority":2,"icon":"🛏️","headline":"Be in bed by 10:28pm",
+             "body":"Your three best deep sleep nights all started before 10:28pm. Every hour later costs roughly 20 minutes of deep sleep.","urgency":"medium"},
+        ],
+    }
+
+    # Sleep debt
+    sleep_debt = 4.2
+    debt_log = [{"date":str(today-timedelta(days=30-i)),"actual":round(rng.gauss(6.8,0.8),2),
+                 "debt":round(rng.gauss(1.2,0.8),2),"cumulative":round(i*0.14,2)} for i in range(30)]
+
+    # Resting HR timeline
+    resting_hr = [{"t":(today - timedelta(days=6-i//4)).isoformat()+"T0"+str(i%4+1)+":00","bpm":round(rng.gauss(53,4))} for i in range(48)]
+
+    heatmap = [{"date":d,"score":s} for d,s in zip(days,ready_scores)]
+
+    return {
+        "generated": str(today), "is_demo": True,
+        "user": {"first_name": "Demo"},
+        "days": days,
+        "scores": {"sleep":sleep_scores,"ready":ready_scores,"activity":act_scores,
+                   "steps":steps_series,"calories":calories,"deep":deep_series,"rem":rem_series,
+                   "restfulness":rest_series,"efficiency":eff_series,"hrv":hrv_series,
+                   "rhr":rhr_series,"temp":temp_series},
+        "latest": {"sleep":78,"ready":74,"activity":71,"steps":6100,"calories":380,
+                   "avg_hrv":38,"avg_hr":54,"hrv_bal":71,"rhr":52,"temp_dev":0.1,
+                   "arch":{"total":"7h 10m","deep":"1h 12m","rem":"1h 35m","light":"4h 08m",
+                           "deep_pct":16.8,"rem_pct":22.1,"light_pct":57.7},
+                   "contributors":{"sleep":{"deep_sleep":72,"rem_sleep":78,"restfulness":65,
+                                            "efficiency":82,"timing":74,"total_sleep":80},
+                                   "ready":{"hrv_balance":71,"recovery_index":68,
+                                            "resting_heart_rate":74,"previous_night":78}}},
+        "avgs": {"sleep":mean(sleep_scores[-30:]),"ready":mean(ready_scores[-30:]),
+                 "activity":mean(act_scores[-30:]),"hrv":mean(hrv_series[-30:]),
+                 "deep":mean(deep_series[-30:]),"restfulness":mean(rest_series[-30:])},
+        "prediction": 76, "hrv_delta": -3.2,
+        "dow": {"labels":DOW,
+                "sleep":[mean(dow_sleep[i]) for i in range(7)],
+                "ready":[mean(dow_ready[i]) for i in range(7)],
+                "steps":[mean(dow_steps[i]) for i in range(7)]},
+        "correlations": corrs,
+        "resting_hr": resting_hr, "checkin_insights": [],
+        "forecast": forecast, "anomalies": anomalies,
+        "sleep_debt": sleep_debt, "debt_log": debt_log,
+        "heatmap": heatmap, "hypnogram": hypnogram,
+        "deep_decoder": deep_decoder, "tonight_card": tonight_card,
+    }
+
 # ── Flask routes ───────────────────────────────────────────────────────────────
+
+@app.route("/api/validate")
+def validate_endpoint():
+    """Quick token validation — calls personal_info, returns first_name or error."""
+    token = request.headers.get("X-Oura-Token", "").strip()
+    if not token:
+        return jsonify({"valid": False, "error": "No token provided"}), 400
+    try:
+        info = fetch("personal_info", None, None, token)
+        if isinstance(info, dict) and ("first_name" in info or "id" in info):
+            return jsonify({"valid": True, "first_name": info.get("first_name", "")})
+        return jsonify({"valid": False, "error": "Token rejected by Oura API"}), 401
+    except Exception as e:
+        return jsonify({"valid": False, "error": str(e)}), 401
+
+@app.route("/api/demo")
+def demo_endpoint():
+    """Returns fully realistic fictitious data for the preview/demo mode."""
+    return jsonify(generate_demo_data())
 
 @app.route("/api/data")
 def data_endpoint():
