@@ -1,9 +1,15 @@
-# 🩺 Oura Claude Dashboard
+# 🩺 Oura Claude Dashboard v2.0
 
 A personal health intelligence dashboard for Oura Ring — built with Claude.
 
 Goes way beyond the Oura app with features no other tool has:
 
+### v2.0 — Sleep Science
+- **Sleep Cycle Explainer** — visualizes your actual hypnogram (deep/light/REM/awake) with heart rate overlay, so you can *see* your sleep architecture, not just a score
+- **Deep Sleep Decoder** — compares your top 25% vs bottom 25% deep sleep nights to discover *your* personal deep sleep triggers (steps, bedtime, stress, alcohol)
+- **Tonight's Sleep Plan** — a coaching card with 2 specific actions you can take *tonight* to optimize tomorrow's recovery
+
+### v1.0 — Core Analytics
 - **7-Day Readiness Forecast** — predicts your readiness score for the next week based on your personal 60-day patterns
 - **Anomaly Detector** — flags days where metrics crashed and auto-detects likely causes
 - **Personal Correlations** — discovers relationships unique to *your* biology (does alcohol wreck *your* deep sleep? do steps improve *your* recovery?)
@@ -11,7 +17,7 @@ Goes way beyond the Oura app with features no other tool has:
 - **60-Day Heatmap** — visual history of every readiness score
 - **Lifestyle Experiment Logger** — nightly check-in that builds your personal sleep model over time
 
-![Dashboard Preview](assets/dashboard-today.png)
+![Dashboard v2.0](assets/dashboard-v2.png)
 
 ---
 
@@ -39,8 +45,8 @@ Then open [http://localhost:7891](http://localhost:7891) in your browser.
 
 | File | What it does |
 |------|-------------|
-| `dashboard/server.py` | Local API server — proxies Oura API, computes correlations + forecast |
-| `dashboard/index.html` | The dashboard UI |
+| `dashboard/server.py` | Local API server — proxies Oura API, computes correlations + forecast + sleep decoder |
+| `dashboard/index.html` | The dashboard UI (6 tabs: Today, Forecast, Trends, Anomalies, Sleep Science, Insights) |
 | `health_monitor.py` | Daily health report (run manually or via scheduler) |
 | `insights_engine.py` | Deep 60-day pattern analysis — run anytime for full report |
 | `evening_checkin.py` | Nightly lifestyle logger — builds your personal sleep model |
@@ -79,6 +85,19 @@ The 7-day readiness forecast is built from:
 4. **Activity load** — high recent activity suppresses next-day readiness
 
 The model is personalized — it uses *your* 60-day history, not population averages.
+
+---
+
+## How the Deep Sleep Decoder works
+
+The decoder splits your last 60 nights into top 25% and bottom 25% by deep sleep duration, then compares the conditions across those nights:
+
+- **Steps** — did you move more on your best deep sleep days?
+- **Bedtime** — is there an optimal window for *your* chronotype?
+- **Calories burned** — does higher activity drive deeper sleep?
+- **Restlessness** — do restless nights predict each other?
+
+Each finding is translated into a plain-English action: *"Your best deep sleep nights happened when you hit 8,400+ steps."*
 
 ---
 

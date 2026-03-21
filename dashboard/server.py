@@ -43,6 +43,325 @@ def pearson(xs, ys):
 
 def clamp(v, lo, hi): return max(lo, min(hi, v))
 
+# ── Sleep Science ──────────────────────────────────────────────────────────────
+
+STAGE_MAP = {"1": "deep", "2": "light", "3": "rem", "4": "awake"}
+STAGE_Y   = {"1": 0, "2": 2, "3": 1, "4": 3}  # deep=bottom, awake=top
+
+def parse_hypnogram(session):
+    """Convert sleep_phase_5_min string into chart-ready arrays."""
+    phase = session.get("sleep_phase_5_min", "")
+    bedtime = session.get("bedtime_start", "")
+    if not phase or not bedtime:
+        return None
+
+    try:
+        start_dt = datetime.fromisoformat(bedtime)
+    except Exception:
+        return None
+
+    labels, stages, colors = [], [], []
+    COLOR_MAP = {"1":"#3b82f6","2":"#6366f1","3":"#a855f7","4":"#374151"}
+
+    for i, ch in enumerate(phase):
+        t = start_dt + timedelta(minutes=i*5)
+        labels.append(t.strftime("%H:%M"))
+        stages.append(STAGE_Y.get(ch, 3))
+        colors.append(COLOR_MAP.get(ch, "#374151"))
+
+    hr_items = session.get("heart_rate", {}).get("items", [])
+    hrv_items = session.get("hrv", {}).get("items", [])
+
+    return {
+        "labels":  labels,
+        "stages":  stages,
+        "colors":  colors,
+        "hr":      hr_items,
+        "hrv":     hrv_items,
+        "deep_min":  phase.count("1") * 5,
+        "light_min": phase.count("2") * 5,
+        "rem_min":   phase.count("3") * 5,
+        "awake_min": phase.count("4") * 5,
+        "total_min": len(phase) * 5,
+        "bedtime":   bedtime[:16],
+        "wake_time": session.get("bedtime_end", "")[:16],
+        "efficiency": session.get("efficiency"),
+        "restless_periods": session.get("restless_periods", 0),
+        "avg_hr":  session.get("average_heart_rate"),
+        "avg_hrv": session.get("average_hrv"),
+        "lowest_hr": session.get("lowest_heart_rate"),
+    }
+
+def build_tonight_card(act, ready, sleep, decoder, debt, act_scores, ready_scores, sleep_scores):
+    """One specific, personalized recommendation for tonight — derived from Tyler's data."""
+    steps    = act.get("steps", 0) or 0
+    calories = act.get("active_calories", 0) or 0
+    hrv      = ready.get("contributors", {}).get("hrv_balance", 80) or 80
+    readiness= ready.get("score", 75) or 75
+    sleep_sc = sleep.get("score", 70) or 70
+    debt_hrs = debt if isinstance(debt, (int,float)) else 0
+
+    science  = decoder.get("science", {}) if decoder else {}
+    findings = decoder.get("findings", []) if decoder else []
+    best_nights = decoder.get("best_nights", []) if decoder else []
+
+    # Derive optimal bedtime from best nights
+    optimal_bed = None
+    if best_nights:
+        beds = [n.get("bed") for n in best_nights if n.get("bed")]
+        if beds:
+            optimal_bed = beds[0]  # most common best bedtime
+
+    # Figure out what's most important tonight
+    issues = []
+
+    # Step deficit vs personal best
+    best_steps = max([n.get("steps") or 0 for n in best_nights], default=8000)
+    if steps < best_steps * 0.7:
+        gap = best_steps - steps
+        issues.append({
+            "priority": 1,
+            "icon": "🚶",
+            "headline": f"Take a {min(30, max(10, gap//100))}-minute walk before bed",
+            "body": f"You've done {steps:,} steps today. Your best deep sleep nights average {best_steps:,}. A short walk tonight could add 15–25 minutes of deep sleep.",
+            "urgency": "high"
+        })
+
+    # Bedtime target
+    now_hour = datetime.now().hour
+    if optimal_bed:
+        issues.append({
+            "priority": 2,
+            "icon": "🛏️",
+            "headline": f"Be in bed by {optimal_bed}",
+            "body": f"Your three best deep sleep nights all started before {optimal_bed}. Every hour later you go to bed costs you roughly 20 minutes of deep sleep.",
+            "urgency": "high" if now_hour >= 21 else "medium"
+        })
+
+    # HRV low — stress/recovery issue
+    if hrv < 75:
+        issues.append({
+            "priority": 3,
+            "icon": "💆",
+            "headline": "Wind down early tonight — HRV is low",
+            "body": f"Your HRV balance is {hrv}/100, meaning your nervous system is still under load. Avoid screens and alcohol. Try 10 minutes of slow breathing.",
+            "urgency": "medium"
+        })
+
+    # Sleep debt
+    if debt_hrs > 3:
+        issues.append({
+            "priority": 4,
+            "icon": "💳",
+            "headline": f"You're {debt_hrs}h in sleep debt — don't cut tonight short",
+            "body": "Your body needs at least 8 hours in bed tonight. Resist the alarm if you can. Deep sleep increases during recovery nights.",
+            "urgency": "medium"
+        })
+
+    # Restfulness issue from decoder
+    restless_finding = next((f for f in findings if "restless" in f.get("title","").lower()), None)
+    if restless_finding:
+        issues.append({
+            "priority": 5,
+            "icon": "🌡️",
+            "headline": "Cool your room tonight",
+            "body": "Restlessness is your #1 deep sleep killer. Keep the room between 65–68°F. Your body needs to drop 1–2°F to enter deep sleep.",
+            "urgency": "medium"
+        })
+
+    # Sort by priority and pick top 2
+    issues.sort(key=lambda x: x["priority"])
+    top = issues[:2]
+
+    # Overall verdict for tonight
+    if readiness >= 80 and steps >= 7000:
+        verdict = "great"
+        verdict_msg = "You're set up well for a good night. Lock in the details below."
+        verdict_color = "#22c55e"
+    elif readiness >= 65 or steps >= 5000:
+        verdict = "ok"
+        verdict_msg = "Tonight is fixable. A couple of things to do before bed."
+        verdict_color = "#f59e0b"
+    else:
+        verdict = "at-risk"
+        verdict_msg = "Today's numbers put your sleep at risk. Follow the plan below."
+        verdict_color = "#ef4444"
+
+    return {
+        "verdict":       verdict,
+        "verdict_msg":   verdict_msg,
+        "verdict_color": verdict_color,
+        "optimal_bed":   optimal_bed,
+        "steps_today":   steps,
+        "best_steps":    best_steps,
+        "hrv":           hrv,
+        "debt":          debt_hrs,
+        "actions":       top,
+    }
+
+def build_deep_sleep_decoder(sleep_detail, activity_map):
+    """Analyze 60 days to find what drives deep sleep — personalized."""
+    nights = []
+    for s in sleep_detail:
+        phase = s.get("sleep_phase_5_min", "")
+        if not phase or len(phase) < 20:
+            continue
+        deep_min = phase.count("1") * 5
+        day      = s.get("day", "")
+        bedtime  = s.get("bedtime_start", "")
+        try:
+            bed_hour = datetime.fromisoformat(bedtime).hour + \
+                       datetime.fromisoformat(bedtime).minute / 60
+            # Normalize: 22.5 = 10:30pm, values > 24 wrap around midnight
+            if bed_hour < 12:
+                bed_hour += 24  # treat 1am as 25, 2am as 26, etc.
+        except Exception:
+            bed_hour = None
+
+        # Previous day's activity
+        act = activity_map.get(day, {})
+        nights.append({
+            "day":       day,
+            "deep_min":  deep_min,
+            "total_min": len(phase) * 5,
+            "bed_hour":  bed_hour,
+            "steps":     act.get("steps"),
+            "calories":  act.get("active_calories"),
+            "act_score": act.get("score"),
+            "restless":  s.get("restless_periods", 0),
+        })
+
+    if len(nights) < 10:
+        return {}
+
+    nights.sort(key=lambda x: x["deep_min"])
+    n = len(nights)
+    top_q  = nights[int(n * 0.75):]   # top 25% — best deep sleep
+    bot_q  = nights[:int(n * 0.25)]   # bottom 25% — worst deep sleep
+
+    def avg(lst, key):
+        vals = [x[key] for x in lst if x.get(key) is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    top_steps   = avg(top_q, "steps")
+    bot_steps   = avg(bot_q, "steps")
+    top_bed     = avg(top_q, "bed_hour")
+    bot_bed     = avg(bot_q, "bed_hour")
+    top_cal     = avg(top_q, "calories")
+    bot_cal     = avg(bot_q, "calories")
+    top_rest    = avg(top_q, "restless")
+    bot_rest    = avg(bot_q, "restless")
+
+    def fmt_hour(h):
+        if h is None: return "—"
+        h = h % 24
+        hh = int(h)
+        mm = int((h % 1) * 60)
+        suffix = "am" if hh < 12 else "pm"
+        hh12 = hh if hh <= 12 else hh - 12
+        return f"{hh12}:{mm:02d}{suffix}"
+
+    # Build plain-English insights
+    insights = []
+    findings = []
+
+    overall_avg = avg(nights, "deep_min")
+    overall_std = round(std([n["deep_min"] for n in nights]), 0)
+
+    # Steps finding
+    if top_steps and bot_steps:
+        diff = top_steps - bot_steps
+        if diff > 1500:
+            findings.append({
+                "icon": "🚶",
+                "title": "Steps matter for YOU",
+                "body": f"On your best deep sleep nights you averaged {int(top_steps):,} steps. On your worst, {int(bot_steps):,}. That's a {int(diff):,}-step difference.",
+                "action": f"Aim for {int(top_steps):,} steps on days you want deep sleep.",
+                "impact": "high"
+            })
+        elif diff > 500:
+            findings.append({
+                "icon": "🚶",
+                "title": "More steps, more deep sleep",
+                "body": f"Best nights: {int(top_steps):,} steps. Worst nights: {int(bot_steps):,}.",
+                "action": "A 20-minute walk can make a difference.",
+                "impact": "medium"
+            })
+
+    # Bedtime finding
+    if top_bed and bot_bed:
+        diff = bot_bed - top_bed
+        if abs(diff) > 0.5:
+            earlier = top_bed < bot_bed
+            findings.append({
+                "icon": "🛏️",
+                "title": f"{'Earlier' if earlier else 'Later'} bedtimes = more deep sleep",
+                "body": f"Best nights you were in bed around {fmt_hour(top_bed)}. Worst nights around {fmt_hour(bot_bed)}.",
+                "action": f"Target {fmt_hour(top_bed)} as your bedtime for better deep sleep.",
+                "impact": "high"
+            })
+
+    # Restless finding
+    if top_rest is not None and bot_rest is not None:
+        diff = bot_rest - top_rest
+        if diff > 50:
+            findings.append({
+                "icon": "🌀",
+                "title": "Restlessness is killing your deep sleep",
+                "body": f"On bad nights you have {int(bot_rest)} restless periods vs {int(top_rest)} on good nights.",
+                "action": "Restlessness is caused by alcohol, late meals, heat, or stress. Track which applies.",
+                "impact": "high"
+            })
+
+    # Calories/activity
+    if top_cal and bot_cal:
+        diff = top_cal - bot_cal
+        if diff > 100:
+            findings.append({
+                "icon": "🔥",
+                "title": "Active days → deeper sleep",
+                "body": f"Best nights followed days with {int(top_cal)} active calories burned. Worst: {int(bot_cal)}.",
+                "action": "Light-to-moderate activity during the day improves deep sleep quality.",
+                "impact": "medium"
+            })
+
+    # Deep sleep science explainer
+    pct_deep = round(overall_avg / (avg(nights, "total_min") or 480) * 100, 0) if overall_avg else 0
+
+    science = {
+        "what_is_deep": "Deep sleep (slow-wave sleep) is your body's repair mode — it releases growth hormone, consolidates memories, repairs tissue, and clears metabolic waste from your brain. You can't function optimally without it.",
+        "your_avg": overall_avg,
+        "your_std": overall_std,
+        "ideal_min": 90,
+        "ideal_pct": 20,
+        "your_pct": pct_deep,
+        "status": "low" if (overall_avg or 0) < 60 else "fair" if (overall_avg or 0) < 90 else "good",
+        "status_msg": (
+            f"Your average of {overall_avg} min is below the ideal 90+ min. This is your #1 sleep improvement opportunity."
+            if (overall_avg or 0) < 60 else
+            f"Your average of {overall_avg} min is getting there. Small tweaks could push you into the optimal zone."
+            if (overall_avg or 0) < 90 else
+            f"Your deep sleep is solid at {overall_avg} min average. Focus on consistency."
+        ),
+        "when_it_happens": "Most deep sleep happens in the first 3-4 hours of the night. If you're going to bed late or drinking alcohol, you're cutting into your best deep sleep window.",
+        "why_variable": f"Your deep sleep swings {overall_std:.0f} points night to night — that's high variability. Something specific is disrupting it on bad nights.",
+    }
+
+    best3  = sorted(nights, key=lambda x: -x["deep_min"])[:3]
+    worst3 = sorted(nights, key=lambda x:  x["deep_min"])[:3]
+
+    return {
+        "science":    science,
+        "findings":   findings,
+        "best_nights":  [{"day": n["day"], "deep_min": n["deep_min"], "steps": n["steps"], "bed": fmt_hour(n["bed_hour"])} for n in best3],
+        "worst_nights": [{"day": n["day"], "deep_min": n["deep_min"], "steps": n["steps"], "bed": fmt_hour(n["bed_hour"])} for n in worst3],
+        "distribution": [n["deep_min"] for n in sorted(nights, key=lambda x: x["day"])],
+        "distribution_days": [n["day"] for n in sorted(nights, key=lambda x: x["day"])],
+        "top_avg": avg(top_q, "deep_min"),
+        "bot_avg": avg(bot_q, "deep_min"),
+        "overall_avg": overall_avg,
+    }
+
 # ── 7-Day Readiness Forecast ───────────────────────────────────────────────────
 def build_forecast(days, r_map, s_map, a_map, ready_scores, sleep_scores, hrv_series, act_scores):
     today = date.today()
@@ -202,6 +521,9 @@ def build_data():
     detail   = fetch("sleep",          start60, end)
     hr_data  = fetch("heartrate",      start7,  end)
 
+    # Index activity by day for decoder
+    activity_map = {a["day"]: a for a in activity}
+
     s_map = {d["day"]: d for d in sleep}
     r_map = {d["day"]: d for d in ready}
     a_map = {d["day"]: d for d in activity}
@@ -323,6 +645,17 @@ def build_data():
                 })
         checkin_insights.sort(key=lambda x: abs(x["diff"]), reverse=True)
 
+    # Sleep science
+    last_sleep_session = detail[-1] if detail else {}
+    hypnogram    = parse_hypnogram(last_sleep_session)
+    deep_decoder = build_deep_sleep_decoder(detail, activity_map)
+
+    # Tonight's coaching card (needs deep_decoder)
+    tonight_card = build_tonight_card(
+        latest_act, latest_ready, latest_sleep, deep_decoder,
+        sleep_debt, act_scores, ready_scores, sleep_scores
+    )
+
     # 60-day heatmap data
     heatmap = []
     for d in days:
@@ -387,6 +720,9 @@ def build_data():
         "sleep_debt":       sleep_debt,
         "debt_log":         debt_log,
         "heatmap":          heatmap,
+        "hypnogram":        hypnogram,
+        "deep_decoder":     deep_decoder,
+        "tonight_card":     tonight_card,
     }
 
 
