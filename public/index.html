@@ -240,12 +240,12 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
 
     <!-- Auth method tabs -->
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-oauth" onclick="switchAuthTab('oauth')">Sign in with Oura</button>
-      <button class="auth-tab" id="tab-pat" onclick="switchAuthTab('pat')">Personal Access Token</button>
+      <button class="auth-tab" id="tab-oauth" onclick="switchAuthTab('oauth')">Sign in with Oura</button>
+      <button class="auth-tab active" id="tab-pat" onclick="switchAuthTab('pat')">Personal Access Token</button>
     </div>
 
     <!-- OAuth panel -->
-    <div class="auth-panel active" id="panel-oauth">
+    <div class="auth-panel" id="panel-oauth">
       <button class="oauth-btn" id="oauth-btn" onclick="startOAuth()">
         <span>🔐</span> Connect with Oura
       </button>
@@ -254,7 +254,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
     </div>
 
     <!-- Personal Access Token panel -->
-    <div class="auth-panel" id="panel-pat">
+    <div class="auth-panel active" id="panel-pat">
       <div class="setup-steps">
         <div class="setup-step">
           <div class="setup-step-num">1</div>
