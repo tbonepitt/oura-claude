@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tyler's Health Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0d0f14; --surface:#151820; --surface2:#1c202e; --border:#252a3a;
+  --text:#e8eaf0; --muted:#6b7280;
+  --green:#22c55e; --yellow:#f59e0b; --red:#ef4444;
+  --blue:#3b82f6; --purple:#a855f7; --cyan:#06b6d4; --orange:#f97316;
+  --accent:#6366f1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5}
+
+/* Header */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
+header h1 span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:12px}
+.date-badge{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 12px;font-size:12px;color:var(--muted)}
+.refresh-btn{background:var(--accent);border:none;border-radius:8px;color:#fff;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.refresh-btn:hover{opacity:.85}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Nav tabs */
+nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:4px}
+.tab{padding:10px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;user-select:none}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Layout */
+main{max-width:1400px;margin:0 auto;padding:24px 28px}
+.page{display:none}.page.active{display:block}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:20px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+.full{margin-bottom:20px}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:14px}
+
+/* Score ring */
+.score-card{text-align:center}
+.score-ring{position:relative;width:110px;height:110px;margin:0 auto 12px}
+.score-ring canvas{width:110px!important;height:110px!important}
+.score-val{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:800;letter-spacing:-1px}
+.score-label{font-size:16px;font-weight:700;margin-bottom:4px}
+.score-sub{font-size:11px;color:var(--muted)}
+.score-trend{font-size:12px;margin-top:8px}
+
+/* Stat */
+.stat-item{background:var(--surface2);border-radius:10px;padding:14px}
+.stat-item .val{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.stat-item .lbl{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* Forecast calendar */
+.forecast-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px}
+.forecast-day{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;transition:transform .15s}
+.forecast-day:hover{transform:translateY(-2px)}
+.forecast-day.weekend{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.05)}
+.fc-dow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
+.fc-date{font-size:11px;color:var(--muted);margin-bottom:10px}
+.fc-score{font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
+.fc-rec{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;display:inline-block;margin-bottom:8px}
+.fc-intensity{font-size:11px;color:var(--muted)}
+
+/* Anomaly */
+.anomaly-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.anomaly-card:last-child{margin-bottom:0}
+.anomaly-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.anomaly-label{font-size:13px;font-weight:700}
+.anomaly-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px}
+.anomaly-badge.sleep{background:rgba(59,130,246,.15);color:var(--blue)}
+.anomaly-badge.readiness{background:rgba(34,197,94,.15);color:var(--green)}
+.anomaly-badge.activity{background:rgba(249,115,22,.15);color:var(--orange)}
+.anomaly-causes{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cause-tag{font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--muted)}
+
+/* Debt */
+.debt-big{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1}
+.debt-bar{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin:10px 0}
+.debt-fill{height:100%;border-radius:4px;transition:width .6s}
+
+/* Heatmap */
+.heatmap-wrap{display:flex;flex-wrap:wrap;gap:3px}
+.hm-cell{width:16px;height:16px;border-radius:3px;cursor:default;transition:transform .1s}
+.hm-cell:hover{transform:scale(1.4)}
+.hm-legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--muted)}
+.hm-legend-cells{display:flex;gap:3px}
+.hm-legend-cell{width:12px;height:12px;border-radius:2px}
+
+/* Arch */
+.arch-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.arch-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.arch-label{flex:1;font-size:13px;color:var(--muted)}
+.arch-val{font-size:13px;font-weight:700}
+.arch-pct{font-size:11px;color:var(--muted);margin-left:4px}
+
+/* Corr */
+.corr-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.corr-label{font-size:12px;color:var(--muted);width:200px;flex-shrink:0}
+.corr-bar-wrap{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.corr-bar{height:100%;border-radius:3px;transition:width .6s}
+.corr-val{font-size:12px;font-weight:700;width:46px;text-align:right}
+
+/* Checkin */
+.insight-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.insight-row:last-child{border-bottom:none}
+.insight-diff{font-size:13px;font-weight:700;padding:3px 10px;border-radius:6px}
+.insight-diff.pos{background:rgba(34,197,94,.12);color:var(--green)}
+.insight-diff.neg{background:rgba(239,68,68,.12);color:var(--red)}
+.insight-diff.neu{background:rgba(107,114,128,.12);color:var(--muted)}
+
+/* Badge */
+.badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:4px;margin-left:8px}
+.badge.live{background:rgba(34,197,94,.15);color:var(--green)}
+.badge.new{background:rgba(99,102,241,.15);color:var(--accent)}
+
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+canvas{display:block}
+@media(max-width:900px){.g3,.g4{grid-template-columns:1fr 1fr}.g12,.g21,.g2{grid-template-columns:1fr}.forecast-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:600px){.g3,.g4,.g2{grid-template-columns:1fr}main{padding:16px}.forecast-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🩺 <span>Tyler's</span> Health Dashboard</h1>
+  <div class="header-right">
+    <div class="dot"></div>
+    <div class="date-badge" id="dateLabel">Loading…</div>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<nav>
+  <div class="tab active" data-page="today">Today</div>
+  <div class="tab" data-page="forecast">7-Day Forecast</div>
+  <div class="tab" data-page="trends">Trends</div>
+  <div class="tab" data-page="anomalies">Anomalies <span id="anomalyCount"></span></div>
+  <div class="tab" data-page="insights">Insights</div>
+</nav>
+
+<main>
+  <div id="today" class="page active"></div>
+  <div id="forecast" class="page"></div>
+  <div id="trends" class="page"></div>
+  <div id="anomalies" class="page"></div>
+  <div id="insights" class="page"></div>
+</main>
+
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function scoreColor(s){if(!s)return'#6b7280';if(s>=85)return'#22c55e';if(s>=70)return'#3b82f6';if(s>=60)return'#f59e0b';return'#ef4444'}
+function scoreEmoji(s){if(!s)return'—';if(s>=85)return'💚 Optimal';if(s>=70)return'🟢 Good';if(s>=60)return'🟡 Fair';return'🔴 Poor'}
+function shortDate(d){const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+function shortDates(days,n=30){return days.slice(-n).map(shortDate)}
+function meanArr(arr){const v=arr.filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
+function trendStr(arr,n=7){
+  const r=arr.slice(-n).filter(v=>v!=null),o=arr.slice(-n*2,-n).filter(v=>v!=null);
+  if(!r.length||!o.length)return'';
+  const d=meanArr(r)-meanArr(o),arrow=d>1?'↑':d<-1?'↓':'→';
+  return`<span style="color:${d>1?'#22c55e':d<-1?'#ef4444':'#6b7280'}">${arrow} ${Math.abs(d).toFixed(0)} vs prior week</span>`
+}
+
+Chart.defaults.color='#6b7280';
+Chart.defaults.borderColor='#252a3a';
+Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+
+const charts={};
+function destroyAll(){Object.values(charts).forEach(c=>c.destroy());Object.keys(charts).forEach(k=>delete charts[k])}
+
+function makeRing(id,score,color){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  return new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[score||0,100-(score||0)],backgroundColor:[color,'#1c202e'],borderWidth:0,borderRadius:4}]},options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:800,easing:'easeOutQuart'}}});
+}
+function makeLine(id,labels,datasets,opts={}){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  return new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:opts.legend??true,position:'top',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:16}},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10,titleFont:{weight:'700'}}},scales:{x:{grid:{color:'#1c202e'},ticks:{maxTicksLimit:opts.maxTicks||10,maxRotation:0}},y:{grid:{color:'#1c202e'},min:opts.yMin,max:opts.yMax,ticks:{stepSize:opts.stepSize}}},elements:{point:{radius:2,hoverRadius:5},line:{tension:0.35}}}});
+}
+function makeBar(id,labels,datasets,opts={}){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  return new Chart(ctx,{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend??false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},scales:{x:{grid:{display:false},stacked:opts.stacked},y:{grid:{color:'#1c202e'},min:opts.yMin||0,stacked:opts.stacked}},borderRadius:4}});
+}
+
+// ── Nav ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.page).classList.add('active');
+  });
+});
+
+// ── Heatmap ──────────────────────────────────────────────────────────────────
+function heatmapColor(s){
+  if(!s)return'#1c202e';
+  if(s>=85)return'rgba(34,197,94,.9)';
+  if(s>=75)return'rgba(34,197,94,.55)';
+  if(s>=70)return'rgba(59,130,246,.7)';
+  if(s>=60)return'rgba(245,158,11,.7)';
+  return'rgba(239,68,68,.7)';
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+let globalData=null;
+
+function render(d){
+  destroyAll();
+  globalData=d;
+  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,checkin_insights,forecast,anomalies,sleep_debt,debt_log,heatmap}=d;
+  const N30=30;
+  const labels30=shortDates(days,N30);
+  const allLabels=days.map(shortDate);
+
+  document.getElementById('dateLabel').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+  // Anomaly count badge
+  if(anomalies.length){
+    document.getElementById('anomalyCount').innerHTML=`<span style="background:rgba(239,68,68,.2);color:#ef4444;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">${anomalies.length}</span>`;
+  }
+
+  // ── TODAY PAGE ─────────────────────────────────────────────────────────────
+  document.getElementById('today').innerHTML=`
+  <div class="g3">
+    <div class="card score-card">
+      <div class="card-title">Sleep Score</div>
+      <div class="score-ring"><canvas id="ringSleep"></canvas><div class="score-val" style="color:${scoreColor(latest.sleep)}">${latest.sleep??'—'}</div></div>
+      <div class="score-label">${scoreEmoji(latest.sleep)}</div>
+      <div class="score-sub">30-day avg: ${avgs.sleep??'—'}</div>
+      <div class="score-trend">${trendStr(scores.sleep)}</div>
+    </div>
+    <div class="card score-card">
+      <div class="card-title">Readiness Score</div>
+      <div class="score-ring"><canvas id="ringReady"></canvas><div class="score-val" style="color:${scoreColor(latest.ready)}">${latest.ready??'—'}</div></div>
+      <div class="score-label">${scoreEmoji(latest.ready)}</div>
+      <div class="score-sub">30-day avg: ${avgs.ready??'—'}</div>
+      <div class="score-trend">${trendStr(scores.ready)}</div>
+    </div>
+    <div class="card score-card">
+      <div class="card-title">Activity Score</div>
+      <div class="score-ring"><canvas id="ringActivity"></canvas><div class="score-val" style="color:${scoreColor(latest.activity)}">${latest.activity??'—'}</div></div>
+      <div class="score-label">${scoreEmoji(latest.activity)}</div>
+      <div class="score-sub">30-day avg: ${avgs.activity??'—'}</div>
+      <div class="score-trend">${trendStr(scores.activity)}</div>
+    </div>
+  </div>
+  <div class="g4">
+    <div class="card"><div class="card-title">Steps Today</div><div class="stat-item" style="background:none;padding:0"><div class="val">${latest.steps?.toLocaleString()??'—'}</div><div class="lbl">30-day avg ${Math.round(meanArr(scores.steps.slice(-30))||0).toLocaleString()}</div></div></div>
+    <div class="card"><div class="card-title">Active Calories</div><div class="stat-item" style="background:none;padding:0"><div class="val">${latest.calories??'—'} <span style="font-size:14px;color:var(--muted)">kcal</span></div></div></div>
+    <div class="card"><div class="card-title">HRV Balance</div><div class="stat-item" style="background:none;padding:0"><div class="val" style="color:${scoreColor(latest.hrv_bal)}">${latest.hrv_bal??'—'}</div><div class="lbl">Sleep avg ${latest.avg_hrv?Math.round(latest.avg_hrv)+'ms':'—'}</div></div></div>
+    <div class="card"><div class="card-title">Resting HR</div><div class="stat-item" style="background:none;padding:0"><div class="val">${latest.avg_hr?Math.round(latest.avg_hr):'—'} <span style="font-size:14px;color:var(--muted)">bpm</span></div><div class="lbl">During sleep</div></div></div>
+  </div>
+  <div class="g21">
+    <div class="card"><div class="card-title">30-Day Score Trends</div><div style="height:200px"><canvas id="chartTrends"></canvas></div></div>
+    <div class="card">
+      <div class="card-title">🔮 Tomorrow's Readiness</div>
+      <div style="font-size:60px;font-weight:900;letter-spacing:-3px;color:${scoreColor(prediction)};line-height:1;margin:8px 0">${prediction}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Predicted from your 60-day personal model</div>
+      ${predRec(prediction)}
+    </div>
+  </div>
+  <div class="g12">
+    <div class="card">
+      <div class="card-title">Last Night's Architecture</div>
+      <div style="height:150px;margin-bottom:14px"><canvas id="chartArch"></canvas></div>
+      <div class="arch-row"><div class="arch-dot" style="background:#6366f1"></div><div class="arch-label">Light</div><div class="arch-val">${latest.arch.light}</div><div class="arch-pct">${latest.arch.light_pct}%</div></div>
+      <div class="arch-row"><div class="arch-dot" style="background:#a855f7"></div><div class="arch-label">REM</div><div class="arch-val">${latest.arch.rem}</div><div class="arch-pct">${latest.arch.rem_pct}%</div></div>
+      <div class="arch-row"><div class="arch-dot" style="background:#3b82f6"></div><div class="arch-label">Deep</div><div class="arch-val">${latest.arch.deep}</div><div class="arch-pct">${latest.arch.deep_pct}%</div></div>
+      <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px"><div class="arch-row"><div class="arch-dot" style="background:var(--muted)"></div><div class="arch-label">Total</div><div class="arch-val">${latest.arch.total}</div></div></div>
+    </div>
+    <div class="card"><div class="card-title">Sleep Contributors</div><div style="height:220px"><canvas id="chartContrib"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">😴 30-Day Sleep Debt <span class="badge new">New</span></div>
+      ${debtCard(sleep_debt,debt_log)}
+    </div>
+    <div class="card">
+      <div class="card-title">📅 60-Day Readiness Heatmap</div>
+      ${heatmapHTML(heatmap)}
+    </div>
+  </div>`;
+
+  // Today charts
+  charts.ringSleep    = makeRing('ringSleep',    latest.sleep,    scoreColor(latest.sleep));
+  charts.ringReady    = makeRing('ringReady',    latest.ready,    scoreColor(latest.ready));
+  charts.ringActivity = makeRing('ringActivity', latest.activity, scoreColor(latest.activity));
+
+  charts.trends = makeLine('chartTrends', labels30, [
+    {label:'Sleep',    data:scores.sleep.slice(-N30),    borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',fill:true},
+    {label:'Readiness',data:scores.ready.slice(-N30),    borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.08)', fill:true},
+    {label:'Activity', data:scores.activity.slice(-N30), borderColor:'#f97316',backgroundColor:'rgba(249,115,22,.08)',fill:true},
+  ],{yMin:40,yMax:100,stepSize:10,maxTicks:10});
+
+  charts.arch = new Chart(document.getElementById('chartArch'),{type:'doughnut',data:{labels:['Light','REM','Deep'],datasets:[{data:[latest.arch.light_pct,latest.arch.rem_pct,latest.arch.deep_pct],backgroundColor:['#6366f1','#a855f7','#3b82f6'],borderWidth:0,borderRadius:3}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},animation:{duration:800}}});
+
+  const contribKeys=['deep_sleep','rem_sleep','restfulness','efficiency','latency','timing','total_sleep'];
+  const contribLabels=['Deep Sleep','REM Sleep','Restfulness','Efficiency','Latency','Timing','Total Sleep'];
+  const sc=latest.contributors.sleep;
+  charts.contrib = new Chart(document.getElementById('chartContrib'),{type:'bar',data:{labels:contribLabels,datasets:[{label:'Score',data:contribKeys.map(k=>sc[k]??null),backgroundColor:contribKeys.map(k=>{const v=sc[k]??0;return v>=80?'rgba(34,197,94,.7)':v>=60?'rgba(59,130,246,.7)':v>=40?'rgba(245,158,11,.7)':'rgba(239,68,68,.7)'}),borderRadius:4,borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},scales:{x:{min:0,max:100,grid:{color:'#1c202e'}},y:{grid:{display:false}}}}});
+
+  // ── FORECAST PAGE ──────────────────────────────────────────────────────────
+  const today_score = latest.ready;
+  document.getElementById('forecast').innerHTML=`
+  <div class="full card" style="margin-bottom:20px">
+    <div class="card-title">🔮 7-Day Readiness Forecast <span class="badge new">Unique to you</span></div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Built from your 60-day personal patterns — day-of-week baselines, HRV momentum, and activity load. No other app does this.</div>
+    <div class="forecast-grid">
+      <div class="forecast-day" style="border-color:${scoreColor(today_score)}44;background:rgba(${today_score>=85?'34,197,94':today_score>=70?'59,130,246':today_score>=60?'245,158,11':'239,68,68'},.05)">
+        <div class="fc-dow" style="color:${scoreColor(today_score)}">TODAY</div>
+        <div class="fc-date">actual</div>
+        <div class="fc-score" style="color:${scoreColor(today_score)}">${today_score??'—'}</div>
+        <div class="fc-rec" style="background:${scoreColor(today_score)}22;color:${scoreColor(today_score)}">Now</div>
+        <div class="fc-intensity">${scoreEmoji(today_score)}</div>
+      </div>
+      ${forecast.map(f=>`
+      <div class="forecast-day${f.is_weekend?' weekend':''}">
+        <div class="fc-dow">${f.dow}</div>
+        <div class="fc-date">${f.month_day}</div>
+        <div class="fc-score" style="color:${f.color}">${f.score}</div>
+        <div class="fc-rec" style="background:${f.color}22;color:${f.color}">${f.rec}</div>
+        <div class="fc-intensity">${f.intensity}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Forecast vs History</div>
+      <div style="height:220px"><canvas id="chartForecast"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Best Days to Train This Week</div>
+      ${trainingDays(forecast)}
+    </div>
+  </div>`;
+
+  // Forecast chart — last 14 actual + 7 predicted
+  const last14days  = days.slice(-14);
+  const last14ready = scores.ready.slice(-14);
+  const fcDays   = forecast.map(f=>f.month_day);
+  const fcScores = forecast.map(f=>f.score);
+  const allFcLabels = [...last14days.map(shortDate), ...fcDays];
+  const actualLine  = [...last14ready, ...Array(7).fill(null)];
+  const predLine    = [...Array(13).fill(null), last14ready[13], ...fcScores];
+
+  charts.forecast = makeLine('chartForecast', allFcLabels, [
+    {label:'Actual',    data:actualLine, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', fill:true},
+    {label:'Predicted', data:predLine,   borderColor:'#a855f7', borderDash:[5,4], backgroundColor:'rgba(168,85,247,.05)', fill:true},
+  ],{yMin:50,yMax:100,legend:true,maxTicks:10});
+
+  // ── TRENDS PAGE ────────────────────────────────────────────────────────────
+  document.getElementById('trends').innerHTML=`
+  <div class="full card">
+    <div class="card-title">HRV Balance <span class="badge live">60 days</span></div>
+    <div style="height:180px"><canvas id="chartHRV"></canvas></div>
+    <div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--surface2);font-size:13px">
+      ${hrv_delta>2?`✅ HRV improved <strong>+${hrv_delta}</strong> pts over 60 days — real cardiovascular adaptation.`:hrv_delta<-2?`⚠️ HRV declined <strong>${hrv_delta}</strong> pts — watch for overtraining.`:`→ HRV stable (Δ${hrv_delta>0?'+':''}${hrv_delta}).`}
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">Deep Sleep Volatility</div><div style="height:180px"><canvas id="chartDeep"></canvas></div></div>
+    <div class="card"><div class="card-title">Daily Steps</div><div style="height:180px"><canvas id="chartSteps"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">Day-of-Week Patterns</div><div style="height:200px"><canvas id="chartDOW"></canvas></div></div>
+    <div class="card"><div class="card-title">Body Temperature Deviation (°C)</div><div style="height:200px"><canvas id="chartTemp"></canvas></div></div>
+  </div>
+  <div class="full card">
+    <div class="card-title">Sleep Debt Log (30 days, target 8h)</div>
+    <div style="height:160px"><canvas id="chartDebt"></canvas></div>
+  </div>`;
+
+  charts.hrv   = makeLine('chartHRV',   allLabels, [{label:'HRV Balance',data:scores.hrv,borderColor:'#a855f7',backgroundColor:'rgba(168,85,247,.08)',fill:true}],{legend:false,yMin:50,yMax:100,maxTicks:12});
+  charts.deep  = makeLine('chartDeep',  allLabels, [{label:'Deep Sleep', data:scores.deep,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',fill:true}],{legend:false,yMin:0,yMax:100,maxTicks:12});
+  charts.steps = makeBar('chartSteps',  labels30,  [{label:'Steps',data:scores.steps.slice(-N30),backgroundColor:scores.steps.slice(-N30).map(s=>s>=8000?'rgba(34,197,94,.7)':s>=5000?'rgba(59,130,246,.5)':'rgba(239,68,68,.4)')}],{legend:false});
+  charts.dow   = makeBar('chartDOW',    dow.labels,[{label:'Sleep avg',data:dow.sleep,backgroundColor:'rgba(59,130,246,.6)'},{label:'Readiness avg',data:dow.ready,backgroundColor:'rgba(34,197,94,.6)'}],{legend:true,yMin:60,yMax:90});
+  charts.temp  = new Chart(document.getElementById('chartTemp'),{type:'bar',data:{labels:allLabels,datasets:[{label:'Temp deviation',data:scores.temp,backgroundColor:scores.temp.map(v=>v==null?'transparent':v>0.5?'rgba(239,68,68,.7)':v<-0.5?'rgba(59,130,246,.7)':'rgba(107,114,128,.4)'),borderRadius:2,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10,callbacks:{label:ctx=>`${ctx.raw>0?'+':''}${ctx.raw?.toFixed(2)??'—'}°C`}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},y:{grid:{color:'#1c202e'},ticks:{callback:v=>`${v>0?'+':''}${v}°`}}}}});
+
+  const debtVals = debt_log.map(d=>d.cumulative);
+  charts.debt = makeLine('chartDebt', debt_log.map(d=>shortDate(d.date)), [
+    {label:'Cumulative debt (hrs)',data:debtVals,borderColor:debtVals[debtVals.length-1]>0?'#ef4444':'#22c55e',backgroundColor:debtVals[debtVals.length-1]>0?'rgba(239,68,68,.08)':'rgba(34,197,94,.08)',fill:true}
+  ],{legend:false,maxTicks:10});
+
+  // ── ANOMALIES PAGE ─────────────────────────────────────────────────────────
+  document.getElementById('anomalies').innerHTML=`
+  <div class="full card" style="margin-bottom:20px">
+    <div class="card-title">🕵️ Anomaly Detector <span class="badge new">New</span></div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Days where a score dropped more than 1.5 standard deviations below your rolling 14-day average — with auto-detected likely causes.</div>
+    ${anomalies.length ? anomalies.map(a=>anomalyCard(a)).join('') : '<div style="color:var(--muted);padding:20px 0">No significant anomalies in your 60-day window. Your metrics are impressively consistent!</div>'}
+  </div>`;
+
+  // ── INSIGHTS PAGE ──────────────────────────────────────────────────────────
+  document.getElementById('insights').innerHTML=`
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">🧬 Your Personal Correlations</div>
+      ${renderCorrelations(correlations)}
+    </div>
+    <div class="card">
+      <div class="card-title">📝 Lifestyle Experiment Results</div>
+      ${checkin_insights.length ? checkin_insights.map(i=>{
+        const cls=i.diff>2?'pos':i.diff<-2?'neg':'neu';
+        const sign=i.diff>0?'+':'';
+        return`<div class="insight-row"><div>${i.factor}</div><div style="font-size:11px;color:var(--muted)">with: ${i.with} / without: ${i.without}</div><div class="insight-diff ${cls}">${sign}${i.diff} pts</div></div>`;
+      }).join('') : '<div style="color:var(--muted);font-size:13px;padding:20px 0">Complete the 9 PM evening check-ins for 2 weeks to unlock this panel — it will show you exactly which habits affect <em>your</em> sleep.</div>'}
+    </div>
+  </div>
+  <div class="full card">
+    <div class="card-title">📅 60-Day Readiness Heatmap</div>
+    ${heatmapHTML(heatmap)}
+    <div style="margin-top:16px;font-size:13px;color:var(--muted)">Each cell = one day. Hover for the score. ${heatmap.filter(h=>h.score>=85).length} optimal days, ${heatmap.filter(h=>h.score&&h.score<65).length} poor days in the last 60.</div>
+  </div>`;
+}
+
+// ── Sub-components ───────────────────────────────────────────────────────────
+function predRec(p){
+  let cls='green',txt='💪 Green light — push hard tomorrow';
+  if(p<75){cls='yellow';txt='🟡 Moderate effort only'}
+  if(p<65){cls='red';   txt='🔴 Recovery day — protect sleep tonight'}
+  return`<div style="padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;background:${cls==='green'?'rgba(34,197,94,.1)':cls==='yellow'?'rgba(245,158,11,.1)':'rgba(239,68,68,.1)'};color:${cls==='green'?'#22c55e':cls==='yellow'?'#f59e0b':'#ef4444'};border:1px solid ${cls==='green'?'rgba(34,197,94,.2)':cls==='yellow'?'rgba(245,158,11,.2)':'rgba(239,68,68,.2)'}">${txt}</div>`;
+}
+
+function debtCard(debt, log){
+  const isDebt = debt > 0;
+  const color  = isDebt ? '#ef4444' : '#22c55e';
+  const pct    = Math.min(Math.abs(debt)/20*100, 100);
+  const recent = log.slice(-7);
+  const avgNightly = meanArr(recent.map(d=>d.actual));
+  return`
+  <div class="debt-big" style="color:${color}">${isDebt?'+':''}${debt}<span style="font-size:20px;color:var(--muted)">h</span></div>
+  <div style="font-size:12px;color:var(--muted);margin:4px 0 10px">${isDebt?'sleep debt accumulated':'sleep surplus'} over 30 days</div>
+  <div class="debt-bar"><div class="debt-fill" style="width:${pct}%;background:${color}"></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+    <div class="stat-item"><div class="val" style="font-size:18px">${avgNightly?avgNightly.toFixed(1)+'h':'—'}</div><div class="lbl">avg nightly (7d)</div></div>
+    <div class="stat-item"><div class="val" style="font-size:18px">${isDebt?Math.ceil(debt/0.5)+' nights':'You\'re good'}</div><div class="lbl">${isDebt?'to pay back':'no deficit'}</div></div>
+  </div>`;
+}
+
+function heatmapHTML(heatmap){
+  const cells = heatmap.map(h=>`<div class="hm-cell" style="background:${heatmapColor(h.score)}" title="${h.date}: ${h.score??'no data'}"></div>`).join('');
+  return`<div class="heatmap-wrap">${cells}</div>
+  <div class="hm-legend">
+    <span>Poor</span>
+    <div class="hm-legend-cells">
+      <div class="hm-legend-cell" style="background:rgba(239,68,68,.7)"></div>
+      <div class="hm-legend-cell" style="background:rgba(245,158,11,.7)"></div>
+      <div class="hm-legend-cell" style="background:rgba(59,130,246,.7)"></div>
+      <div class="hm-legend-cell" style="background:rgba(34,197,94,.55)"></div>
+      <div class="hm-legend-cell" style="background:rgba(34,197,94,.9)"></div>
+    </div>
+    <span>Optimal</span>
+  </div>`;
+}
+
+function anomalyCard(a){
+  return`<div class="anomaly-card">
+    <div class="anomaly-header">
+      <div>
+        <div class="anomaly-label">${a.dow}, ${a.date} — ${a.label}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Score: <strong style="color:${scoreColor(a.score)}">${a.score}</strong> vs your avg of ${a.avg} (dropped ${a.drop} pts)</div>
+      </div>
+      <div class="anomaly-badge ${a.metric}">${a.metric}</div>
+    </div>
+    ${a.causes.length?`<div class="anomaly-causes">${a.causes.map(c=>`<span class="cause-tag">⚡ ${c}</span>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function trainingDays(forecast){
+  const hard   = forecast.filter(f=>f.score>=80);
+  const medium = forecast.filter(f=>f.score>=70&&f.score<80);
+  const rest   = forecast.filter(f=>f.score<70);
+  return`
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Hard effort days</div>
+    ${hard.length?hard.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-weight:700">${f.dow} ${f.month_day}</span><span style="color:${f.color};font-weight:700">${f.score} — Push it 💪</span></div>`).join(''):
+    '<div style="color:var(--muted);font-size:13px">No optimal days this week — focus on recovery.</div>'}
+  </div>
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Moderate days</div>
+    ${medium.length?medium.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-weight:700">${f.dow} ${f.month_day}</span><span style="color:${f.color};font-weight:700">${f.score} 🟢</span></div>`).join(''):'<div style="color:var(--muted);font-size:13px">None this week.</div>'}
+  </div>
+  <div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Recovery days</div>
+    ${rest.length?rest.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-weight:700">${f.dow} ${f.month_day}</span><span style="color:${f.color};font-weight:700">${f.score} — Rest 🔴</span></div>`).join(''):'<div style="color:var(--muted);font-size:13px">None flagged.</div>'}
+  </div>`;
+}
+
+function renderCorrelations(corrs){
+  const items=[
+    {label:'Steps → next night deep sleep',   val:corrs.steps_deep},
+    {label:'Sleep score → next day readiness', val:corrs.sleep_ready},
+    {label:'Active calories → deep sleep',     val:corrs.cal_deep},
+    {label:'HRV balance → sleep quality',      val:corrs.hrv_sleep},
+    {label:'Temp deviation → sleep score',     val:corrs.temp_sleep},
+    {label:'Restfulness → readiness',          val:corrs.rest_ready},
+  ];
+  return items.map(item=>{
+    const r=item.val;
+    const pct=r==null?0:Math.abs(r)*100;
+    const color=r==null?'#6b7280':r>0.3?'#22c55e':r<-0.3?'#ef4444':'#f59e0b';
+    return`<div class="corr-row">
+      <div class="corr-label">${item.label}</div>
+      <div class="corr-bar-wrap"><div class="corr-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="corr-val" style="color:${color}">${r==null?'—':r.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+async function loadData(){
+  document.getElementById('today').innerHTML='<div class="loading"><div class="spinner"></div><div style="color:var(--muted)">Fetching your biometrics…</div></div>';
+  try{
+    const res=await fetch('/api/data');
+    const d=await res.json();
+    render(d);
+  }catch(e){
+    document.getElementById('today').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data.</div></div>';
+  }
+}
+loadData();
+</script>
+</body>
+</html>

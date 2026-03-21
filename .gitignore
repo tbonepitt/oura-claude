@@ -1,0 +1,12 @@
+# Secret — never commit your token
+.env
+
+# Data cache
+raw_data.json
+checkins.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
