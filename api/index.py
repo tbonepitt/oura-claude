@@ -324,12 +324,22 @@ def build_data(token):
     today=date.today(); end=str(today)
     start60=str(today-timedelta(days=60)); start7=str(today-timedelta(days=7))
 
-    sleep    = fetch("daily_sleep",    start60, end, token)
-    ready    = fetch("daily_readiness",start60, end, token)
-    activity = fetch("daily_activity", start60, end, token)
-    detail   = fetch("sleep",          start60, end, token)
-    hr_data  = fetch("heartrate",      start7,  end, token)
-    user_info= fetch("personal_info",  None,    None,token)
+    sleep    = fetch("daily_sleep",              start60, end, token)
+    ready    = fetch("daily_readiness",          start60, end, token)
+    activity = fetch("daily_activity",           start60, end, token)
+    detail   = fetch("sleep",                    start60, end, token)
+    hr_data  = fetch("heartrate",                start7,  end, token)
+    spo2     = fetch("daily_spo2",               start60, end, token)
+    stress   = fetch("daily_stress",             start60, end, token)
+    cardio   = fetch("daily_cardiovascular_age", start60, end, token)
+    vo2      = fetch("vO2_max",                  start60, end, token)
+    user_info= fetch("personal_info",            None,    None,token)
+
+    # Index new vitals by day
+    spo2_map   = {d["day"]: d for d in (spo2   if isinstance(spo2,   list) else [])}
+    stress_map = {d["day"]: d for d in (stress if isinstance(stress, list) else [])}
+    cardio_map = {d["day"]: d for d in (cardio if isinstance(cardio, list) else [])}
+    vo2_map    = {d["day"]: d for d in (vo2    if isinstance(vo2,    list) else [])}
 
     activity_map={a["day"]:a for a in activity}
     s_map={d["day"]:d for d in sleep}; r_map={d["day"]:d for d in ready}; a_map={d["day"]:d for d in activity}
@@ -400,6 +410,23 @@ def build_data(token):
     heatmap=[{"date":d,"score":r_map.get(d,{}).get("score")} for d in days]
     first_name=user_info.get("first_name","") if isinstance(user_info,dict) else ""
 
+    # Vitals series (keyed by day, sparse — not all days have all metrics)
+    spo2_series    = [spo2_map.get(d,{}).get("spo2_percentage",{}) or {} for d in days]
+    spo2_avg       = [s.get("average") for s in spo2_series]
+    spo2_bdi       = [spo2_map.get(d,{}).get("breathing_disturbance_index") for d in days]
+    stress_high    = [round((stress_map.get(d,{}).get("stress_high") or 0)/60) for d in days]
+    recovery_high  = [round((stress_map.get(d,{}).get("recovery_high") or 0)/60) for d in days]
+    stress_summary = [stress_map.get(d,{}).get("day_summary") for d in days]
+    cardio_age     = [cardio_map.get(d,{}).get("vascular_age") for d in days]
+    vo2_series     = [vo2_map.get(d,{}).get("vo2_max") for d in days]
+
+    # Latest vitals values
+    latest_spo2    = next((s.get("average") for s in reversed(spo2_avg) if s), None)
+    latest_bdi     = next((v for v in reversed(spo2_bdi) if v is not None), None)
+    latest_stress  = stress_map.get(days[-1],{}) if days else {}
+    latest_cardio  = next((v for v in reversed(cardio_age) if v is not None), None)
+    latest_vo2     = next((v for v in reversed(vo2_series) if v is not None), None)
+
     return {"generated":str(today),"user":{"first_name":first_name},"days":days,
         "scores":{"sleep":sleep_scores,"ready":ready_scores,"activity":act_scores,
                   "steps":steps_series,"calories":calories,"deep":deep_series,"rem":rem_series,
@@ -420,7 +447,17 @@ def build_data(token):
                "ready":[mean(dow_ready[i]) for i in range(7)],"steps":[mean(dow_steps[i]) for i in range(7)]},
         "correlations":corrs,"resting_hr":resting_hr_timeline[-200:],"checkin_insights":[],
         "forecast":forecast,"anomalies":anomalies,"sleep_debt":sleep_debt,"debt_log":debt_log,
-        "heatmap":heatmap,"hypnogram":hypnogram,"deep_decoder":deep_decoder,"tonight_card":tonight_card}
+        "heatmap":heatmap,"hypnogram":hypnogram,"deep_decoder":deep_decoder,"tonight_card":tonight_card,
+        "vitals":{
+            "spo2_avg":spo2_avg,"spo2_bdi":spo2_bdi,
+            "stress_high":stress_high,"recovery_high":recovery_high,"stress_summary":stress_summary,
+            "cardio_age":cardio_age,"vo2_max":vo2_series,
+            "latest":{"spo2":latest_spo2,"bdi":latest_bdi,
+                      "stress_high_min":round((latest_stress.get("stress_high") or 0)/60),
+                      "recovery_high_min":round((latest_stress.get("recovery_high") or 0)/60),
+                      "stress_summary":latest_stress.get("day_summary"),
+                      "cardio_age":latest_cardio,"vo2_max":latest_vo2}
+        }}
 
 # ── Demo data generator ────────────────────────────────────────────────────────
 
@@ -609,6 +646,21 @@ def generate_demo_data():
         "sleep_debt": sleep_debt, "debt_log": debt_log,
         "heatmap": heatmap, "hypnogram": hypnogram,
         "deep_decoder": deep_decoder, "tonight_card": tonight_card,
+        "vitals": {
+            "spo2_avg":      [round(rng.gauss(96.8, 0.8), 1) for _ in days],
+            "spo2_bdi":      [round(rng.gauss(4, 2)) for _ in days],
+            "stress_high":   [round(rng.gauss(85, 30)) for _ in days],
+            "recovery_high": [round(rng.gauss(110, 35)) for _ in days],
+            "stress_summary":["stressful" if rng.random()<0.2 else "normal" if rng.random()<0.5 else "restored" for _ in days],
+            "cardio_age":    [32 if i%7==0 else None for i,_ in enumerate(days)],
+            "vo2_max":       [round(rng.gauss(44, 1.5), 1) if i%5==0 else None for i,_ in enumerate(days)],
+            "latest": {
+                "spo2": 96.4, "bdi": 5,
+                "stress_high_min": 72, "recovery_high_min": 118,
+                "stress_summary": "normal",
+                "cardio_age": 32, "vo2_max": 44.2
+            }
+        },
     }
 
 # ── Flask routes ───────────────────────────────────────────────────────────────

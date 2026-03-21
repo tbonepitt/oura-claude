@@ -269,6 +269,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
   <div class="tab" data-page="trends">Trends</div>
   <div class="tab" data-page="anomalies">Anomalies <span id="anomalyCount"></span></div>
   <div class="tab" data-page="sleep-science">Sleep Science</div>
+  <div class="tab" data-page="vitals">Vitals</div>
   <div class="tab" data-page="insights">Insights</div>
 </nav>
 
@@ -278,6 +279,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
   <div id="trends" class="page"></div>
   <div id="anomalies" class="page"></div>
   <div id="sleep-science" class="page"></div>
+  <div id="vitals" class="page"></div>
   <div id="insights" class="page"></div>
 </main>
 
@@ -539,6 +541,9 @@ function render(d){
 
   // ── SLEEP SCIENCE PAGE ────────────────────────────────────────────────────
   renderSleepScience(d.hypnogram, d.deep_decoder);
+
+  // ── VITALS PAGE ───────────────────────────────────────────────────────────
+  renderVitals(d.vitals, d.days, d.user);
 
   // ── INSIGHTS PAGE ──────────────────────────────────────────────────────────
   document.getElementById('insights').innerHTML=`
@@ -1079,6 +1084,146 @@ function changeToken() {
     if (e.key === 'Enter') connectToken();
   });
 })();
+
+// ── Vitals ────────────────────────────────────────────────────────────────────
+function renderVitals(v, days, user) {
+  if (!v) { document.getElementById('vitals').innerHTML='<div class="loading"><div style="color:var(--muted)">No vitals data available.</div></div>'; return; }
+  const l = v.latest || {};
+  const name = (user && user.first_name) ? user.first_name + "'s" : "Your";
+
+  // SpO2
+  const spo2Val   = l.spo2 != null ? l.spo2.toFixed(1)+'%' : '—';
+  const spo2Color = l.spo2 == null ? 'var(--muted)' : l.spo2 >= 95 ? 'var(--green)' : l.spo2 >= 90 ? 'var(--yellow)' : 'var(--red)';
+  const spo2Msg   = l.spo2 == null ? 'Not available' : l.spo2 >= 95 ? 'Normal — healthy oxygen saturation' : l.spo2 >= 90 ? 'Slightly low — monitor closely' : 'Low — consult a doctor';
+  const bdiVal    = l.bdi != null ? l.bdi : '—';
+
+  // Stress
+  const stressIcon = {restored:'😌', normal:'😐', stressful:'😤'}[l.stress_summary] || '—';
+  const stressColor= {restored:'var(--green)', normal:'var(--blue)', stressful:'var(--red)'}[l.stress_summary] || 'var(--muted)';
+  const stressLabel= {restored:'Restored', normal:'Balanced', stressful:'High Stress'}[l.stress_summary] || 'No data';
+  const stressHigh = l.stress_high_min || 0;
+  const recHigh    = l.recovery_high_min || 0;
+  const totalMins  = stressHigh + recHigh || 1;
+
+  // VO2 / Cardio
+  const vo2Val    = l.vo2_max != null ? l.vo2_max.toFixed(1)+' mL/min/kg' : '—';
+  const vo2Color  = l.vo2_max == null ? 'var(--muted)' : l.vo2_max >= 50 ? 'var(--green)' : l.vo2_max >= 40 ? 'var(--blue)' : l.vo2_max >= 30 ? 'var(--yellow)' : 'var(--red)';
+  const vo2Msg    = l.vo2_max == null ? 'Not available — requires activity data' :
+                    l.vo2_max >= 55 ? 'Superior — top 10% of your age group' :
+                    l.vo2_max >= 50 ? 'Excellent cardiovascular fitness' :
+                    l.vo2_max >= 42 ? 'Good — above average fitness' :
+                    l.vo2_max >= 34 ? 'Fair — room to improve with cardio training' : 'Below average — consistent cardio will help';
+  const cardioAge = l.cardio_age != null ? l.cardio_age : '—';
+
+  // Filter valid SpO2 / VO2 points for charts
+  const spo2Points = days.map((d,i) => ({x:d, y:v.spo2_avg[i]})).filter(p=>p.y!=null);
+  const vo2Points  = days.map((d,i) => ({x:d, y:v.vo2_max[i]})).filter(p=>p.y!=null);
+  const stressPoints   = days.map((d,i) => v.stress_high[i]||0);
+  const recoveryPoints = days.map((d,i) => v.recovery_high[i]||0);
+
+  document.getElementById('vitals').innerHTML=`
+  <div class="g4" style="margin-bottom:20px">
+    <div class="card score-card">
+      <div class="card-title">🫁 Blood Oxygen (SpO2)</div>
+      <div style="font-size:36px;font-weight:800;color:${spo2Color};margin:12px 0 4px">${spo2Val}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">${spo2Msg}</div>
+      ${l.bdi!=null?`<div style="font-size:11px;color:var(--muted)">Disturbance index: <strong style="color:var(--text)">${bdiVal}</strong></div>`:''}
+    </div>
+    <div class="card score-card">
+      <div class="card-title">🧠 Stress Balance</div>
+      <div style="font-size:36px;font-weight:800;color:${stressColor};margin:12px 0 4px">${stressIcon}</div>
+      <div style="font-size:15px;font-weight:700;color:${stressColor};margin-bottom:6px">${stressLabel}</div>
+      <div style="font-size:11px;color:var(--muted)">${stressHigh}m stress · ${recHigh}m recovery</div>
+    </div>
+    <div class="card score-card">
+      <div class="card-title">❤️ Cardiovascular Age</div>
+      <div style="font-size:36px;font-weight:800;color:${l.cardio_age!=null?'var(--accent)':'var(--muted)'};margin:12px 0 4px">${cardioAge}</div>
+      <div style="font-size:12px;color:var(--muted)">${l.cardio_age!=null?'Estimated vascular age':'Not available for your ring/plan'}</div>
+    </div>
+    <div class="card score-card">
+      <div class="card-title">🏃 VO2 Max</div>
+      <div style="font-size:${l.vo2_max!=null?'24':'36'}px;font-weight:800;color:${vo2Color};margin:12px 0 4px">${vo2Val}</div>
+      <div style="font-size:12px;color:var(--muted)">${vo2Msg}</div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">🫁 SpO2 Trend — 60 Days</div>
+      ${spo2Points.length ? `<canvas id="spo2Chart" height="160"></canvas>` : `<div style="color:var(--muted);padding:20px 0;font-size:13px">SpO2 data requires an Oura Ring Gen 3 or Ring 4.</div>`}
+    </div>
+    <div class="card">
+      <div class="card-title">🏃 VO2 Max Trend</div>
+      ${vo2Points.length ? `<canvas id="vo2Chart" height="160"></canvas>` : `<div style="color:var(--muted);padding:20px 0;font-size:13px">VO2 Max is estimated from outdoor walks and runs. Make sure GPS workouts are logged.</div>`}
+    </div>
+  </div>
+
+  <div class="card full">
+    <div class="card-title">🧠 Daily Stress vs Recovery — 60 Days</div>
+    ${(stressPoints.some(v=>v>0)||recoveryPoints.some(v=>v>0)) ?
+      `<canvas id="stressChart" height="120"></canvas>` :
+      `<div style="color:var(--muted);padding:20px 0;font-size:13px">Stress data requires Oura's Stress feature (Ring 4 or compatible subscription).</div>`}
+  </div>
+
+  <div class="card full" style="background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(168,85,247,.06));border-color:rgba(99,102,241,.2)">
+    <div class="card-title">📖 What These Metrics Mean</div>
+    <div class="g3" style="margin-top:8px">
+      <div>
+        <div style="font-weight:700;margin-bottom:6px">🫁 SpO2</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Blood oxygen saturation measures how much of your hemoglobin is carrying oxygen. 95–100% is normal. Drops below 90% during sleep can indicate sleep apnea or other respiratory issues.</div>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:6px">🧠 Stress Score</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Oura tracks physiological stress vs recovery using HRV patterns throughout the day. <em>Restored</em> means your body spent more time recovering than stressed. <em>Stressful</em> means the opposite.</div>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:6px">🏃 VO2 Max</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">VO2 Max is the maximum rate at which your body can use oxygen during exercise — the gold standard measure of cardiovascular fitness. It's estimated from GPS pace vs heart rate during outdoor walks and runs.</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Render charts
+  requestAnimationFrame(() => {
+    if (spo2Points.length) {
+      new Chart(document.getElementById('spo2Chart'), {
+        type:'line',
+        data:{labels:spo2Points.map(p=>p.x.slice(5)),
+              datasets:[{data:spo2Points.map(p=>p.y),borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,.1)',
+                         borderWidth:2,pointRadius:2,tension:.3,fill:true}]},
+        options:{responsive:true,plugins:{legend:{display:false}},
+                 scales:{y:{min:88,max:100,ticks:{callback:v=>v+'%'},
+                            grid:{color:'rgba(255,255,255,.05)'}},
+                         x:{ticks:{maxTicksLimit:8},grid:{display:false}}}}
+      });
+    }
+    if (vo2Points.length) {
+      new Chart(document.getElementById('vo2Chart'), {
+        type:'line',
+        data:{labels:vo2Points.map(p=>p.x.slice(5)),
+              datasets:[{data:vo2Points.map(p=>p.y),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',
+                         borderWidth:2,pointRadius:3,tension:.3,fill:true}]},
+        options:{responsive:true,plugins:{legend:{display:false}},
+                 scales:{y:{ticks:{callback:v=>v+' mL'},grid:{color:'rgba(255,255,255,.05)'}},
+                         x:{ticks:{maxTicksLimit:8},grid:{display:false}}}}
+      });
+    }
+    if (stressPoints.some(v=>v>0)||recoveryPoints.some(v=>v>0)) {
+      new Chart(document.getElementById('stressChart'), {
+        type:'bar',
+        data:{labels:days.map(d=>d.slice(5)),
+              datasets:[
+                {label:'Stress (min)',data:stressPoints,backgroundColor:'rgba(239,68,68,.6)',borderRadius:2},
+                {label:'Recovery (min)',data:recoveryPoints,backgroundColor:'rgba(34,197,94,.6)',borderRadius:2}
+              ]},
+        options:{responsive:true,plugins:{legend:{labels:{color:'#6b7280',font:{size:11}}}},
+                 scales:{x:{stacked:true,ticks:{maxTicksLimit:10},grid:{display:false}},
+                         y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},
+                            ticks:{callback:v=>v+'m'}}}}
+      });
+    }
+  });
+}
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 async function loadData(){
