@@ -70,35 +70,42 @@ footer a{color:var(--accent);text-decoration:none}
   <p>When you load the dashboard, your browser sends your token as a request header to our serverless API function hosted on Vercel. The function uses that token to query the Oura API, performs statistical computations (correlations, forecasts, anomaly detection), and returns the results to your browser. <strong>No health data is written to any database, log, or storage at any point.</strong> Each request is stateless and ephemeral.</p>
 
   <h3>5. Data Sharing</h3>
-  <p>We do not sell, rent, share, or disclose your personal or health data to any third party. The only external service your data touches is:</p>
+  <p>We do not sell, rent, share, or disclose your personal or health data to any third party, including advertisers or data brokers. The only external services your data touches are:</p>
   <ul>
     <li><strong>Oura API</strong> (api.ouraring.com) — to retrieve your health metrics</li>
     <li><strong>Vercel</strong> — our serverless hosting provider, which processes requests in memory only and retains no data</li>
   </ul>
 
-  <h3>6. Analytics and Tracking</h3>
+  <h3>6. Oura's Collection of Usage Data (Required Disclosure)</h3>
+  <p>As required by the <a href="https://developer.ouraring.com/legal/api-agreement" style="color:var(--accent)" target="_blank">Oura API Agreement</a>, we are required to disclose the following: <strong>Oura may collect certain usage data and information related to our use of the Oura API Materials and Oura Platform in connection with this application.</strong> Oura may use such data for any business purpose, including providing enhancements to the Oura API and Platform. This data is collected by Oura independently and is governed by <a href="https://ouraring.com/privacy-policy" style="color:var(--accent)" target="_blank">Oura's Privacy Policy</a>.</p>
+
+  <h3>8. Analytics and Tracking</h3>
   <p>This App does not use cookies, tracking pixels, analytics services, or any form of user tracking. We do not know who uses the App or how often.</p>
 
-  <h3>7. Children's Privacy</h3>
+  <h3>9. Children's Privacy</h3>
   <p>This App is not intended for users under the age of 13. We do not knowingly collect data from children. If you believe a child has used this App, please contact us so we can take appropriate action.</p>
 
-  <h3>8. Your Rights</h3>
+  <h3>10. Your Rights &amp; Data Deletion</h3>
   <p>Since we store no personal data on our servers, there is nothing for us to delete or provide on request. To remove all data associated with your use of this App:</p>
   <ul>
-    <li>Click "⚙ Token" in the dashboard header and remove your token</li>
-    <li>Clear your browser's localStorage for this site</li>
+    <li>Click "⚙ Token" in the dashboard header and remove your token — this immediately stops all data access</li>
+    <li>Clear your browser's localStorage for this site to remove the locally stored token</li>
     <li>Revoke the Personal Access Token at <a href="https://cloud.ouraring.com/personal-access-tokens" style="color:var(--accent)" target="_blank">cloud.ouraring.com/personal-access-tokens</a></li>
+    <li>Manage your Oura account directly at <a href="https://cloud.ouraring.com" style="color:var(--accent)" target="_blank">cloud.ouraring.com</a></li>
   </ul>
-  <p>For rights related to data held by Oura Health Oy (the ring manufacturer), please refer to <a href="https://ouraring.com/privacy-policy" style="color:var(--accent)" target="_blank">Oura's Privacy Policy</a>.</p>
+  <p>Upon request, we will confirm in writing that we hold no data about you. For rights related to data held by Oura Health Oy, please refer to <a href="https://ouraring.com/privacy-policy" style="color:var(--accent)" target="_blank">Oura's Privacy Policy</a>.</p>
 
-  <h3>9. Security</h3>
-  <p>All data in transit is encrypted via HTTPS/TLS. Our serverless functions run in isolated execution environments. We follow industry-standard security practices and do not store credentials or health data anywhere.</p>
+  <h3>11. Oura Branding Compliance</h3>
+  <p>This App uses the Oura API in accordance with the <a href="https://developer.ouraring.com/legal/api-agreement" style="color:var(--accent)" target="_blank">Oura API Agreement</a> and <a href="https://static.ouraring.com/pdfs/Oura_BrandGuidelines_v1.pdf" style="color:var(--accent)" target="_blank">Oura Brand Guidelines</a>. We are not affiliated with or endorsed by Oura Health Oy. "Oura" is a trademark of Oura Health Oy.</p>
 
-  <h3>10. Changes to This Policy</h3>
+  <h3>12. Security</h3>
+  <p>All data in transit is encrypted via HTTPS/TLS. We notify Oura of any security breach involving Oura data within 24 hours of discovery, as required by the Oura API Agreement and GDPR Article 32(1). Our serverless functions run in isolated execution environments and do not store credentials or health data anywhere.</p>
+
+  <h3>13. Changes to This Policy</h3>
   <p>We may update this Privacy Policy from time to time. We will update the effective date at the top of this page when we do. Continued use of the App after changes constitutes acceptance of the updated policy.</p>
 
-  <h3>11. Contact</h3>
-  <p>For privacy questions or concerns, contact us at:</p>
+  <h3>14. Contact</h3>
+  <p>For privacy questions, data deletion requests, or concerns, contact us at:</p>
   <ul>
     <li>Website: <a href="https://saintlydigital.com" style="color:var(--accent)" target="_blank">saintlydigital.com</a></li>
     <li>Application: <a href="https://oura-claude.vercel.app" style="color:var(--accent)" target="_blank">oura-claude.vercel.app</a></li>
