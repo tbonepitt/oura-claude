@@ -11,7 +11,7 @@ Goes way beyond the Oura app with features no other tool has:
 - **60-Day Heatmap** — visual history of every readiness score
 - **Lifestyle Experiment Logger** — nightly check-in that builds your personal sleep model over time
 
-![Dashboard Preview](https://i.imgur.com/placeholder.png)
+![Dashboard Preview](assets/dashboard-today.png)
 
 ---
 
