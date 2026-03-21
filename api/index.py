@@ -3,12 +3,12 @@
 Token is read from the X-Oura-Token request header. Never stored server-side.
 """
 
-import json, os, math, random
+import json, os, math, random, urllib.parse
 from datetime import date, timedelta, datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 from collections import defaultdict
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect
 
 app = Flask(__name__)
 
@@ -694,6 +694,57 @@ def data_endpoint():
         return jsonify(build_data(token))
     except Exception as e:
         return jsonify({"error": "fetch_failed", "message": str(e)}), 500
+
+@app.route("/api/oauth/authorize")
+def oauth_authorize():
+    """Redirect the browser to Oura's OAuth authorization page."""
+    client_id = os.environ.get("OURA_CLIENT_ID", "")
+    if not client_id:
+        return jsonify({"error": "OAuth not configured on this server. Use a Personal Access Token instead."}), 503
+    redirect_uri = request.args.get("redirect_uri", "")
+    params = urllib.parse.urlencode({
+        "response_type": "code",
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "scope": "email personal daily heartrate spo2Daily",
+    })
+    return redirect(f"https://cloud.ouraring.com/oauth/authorize?{params}")
+
+@app.route("/api/oauth/token", methods=["POST"])
+def oauth_token_endpoint():
+    """Exchange an OAuth authorization code for an access token."""
+    client_id     = os.environ.get("OURA_CLIENT_ID", "")
+    client_secret = os.environ.get("OURA_CLIENT_SECRET", "")
+    if not client_id or not client_secret:
+        return jsonify({"error": "OAuth not configured on this server. Use a Personal Access Token instead."}), 503
+    data         = request.get_json(silent=True) or {}
+    code         = data.get("code", "").strip()
+    redirect_uri = data.get("redirect_uri", "").strip()
+    if not code:
+        return jsonify({"error": "Missing authorization code"}), 400
+    payload = urllib.parse.urlencode({
+        "grant_type":   "authorization_code",
+        "code":         code,
+        "redirect_uri": redirect_uri,
+        "client_id":    client_id,
+        "client_secret": client_secret,
+    }).encode()
+    req = Request("https://api.ouraring.com/oauth/token", data=payload, method="POST")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+    try:
+        with urlopen(req, timeout=15) as r:
+            body = json.loads(r.read())
+        access_token = body.get("access_token", "")
+        if not access_token:
+            return jsonify({"error": "No access token returned", "detail": body}), 400
+        try:
+            info       = fetch("personal_info", None, None, access_token)
+            first_name = info.get("first_name", "") if isinstance(info, dict) else ""
+        except Exception:
+            first_name = ""
+        return jsonify({"access_token": access_token, "first_name": first_name})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
