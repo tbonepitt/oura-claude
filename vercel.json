@@ -1,9 +1,8 @@
 {
   "version": 2,
-  "framework": null,
   "builds": [
     {
-      "src": "api/data.py",
+      "src": "api/index.py",
       "use": "@vercel/python"
     },
     {
@@ -12,7 +11,7 @@
     }
   ],
   "routes": [
-    { "src": "/api/data", "dest": "/api/data.py" },
+    { "src": "/api/(.*)", "dest": "/api/index.py" },
     { "src": "/(.*)",     "dest": "/public/index.html" }
   ]
 }
