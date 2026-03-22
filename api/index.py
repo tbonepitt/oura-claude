@@ -716,7 +716,7 @@ def build_data(token):
     forecast=build_forecast(days,r_map,s_map,a_map,ready_scores,sleep_scores,hrv_series,act_scores)
     anomalies=detect_anomalies(days,s_map,r_map,a_map,sleep_scores,ready_scores,act_scores)
     sleep_debt,debt_log=calc_sleep_debt(detail)
-    recovery_intel=calc_recovery_intelligence(detail,ready_data,sleep_data,hrv_series,debt_log,sleep_debt)
+    recovery_intel=calc_recovery_intelligence(detail,ready,sleep,hrv_series,debt_log,sleep_debt)
 
     resting_hr_timeline=[{"t":h["timestamp"][:16],"bpm":h["bpm"]} for h in hr_data if h.get("source")=="rest" and h.get("bpm")]
 
