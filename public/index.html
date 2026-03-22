@@ -668,7 +668,7 @@ function render(d){
   </div>
   ${tonightCardHTML({...d.tonight_card, sleep_recommendation: sleep_recommendation||''}, ci)}
 
-  ${recoveryIntelHTML(sleep_debt, debt_log, ri)}
+  ${recoveryIntelHTML(sleep_debt, debt_log, ri, d.tonight_card?.optimal_bed)}
   ${weeklyPatternsHTML(dow, ri)}
 
   <div class="card">
@@ -883,7 +883,7 @@ function trajectoryBadge(direction, changePts){
   return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:${c.color};background:${c.bg};padding:3px 8px;border-radius:20px">${c.icon} ${c.label}</span>`;
 }
 
-function recoveryIntelHTML(debt, log, ri){
+function recoveryIntelHTML(debt, log, ri, optimalBed){
   if (!ri) return `<div class="card"><div class="card-title">😴 Sleep Debt</div>${debtCard(debt, log, 7.5)}</div>`;
   const {personal_target, payback_plan, maintenance_bedtime, avg_wake_time, debt_trend, last_night_delta, recovery_rate, personal_records: pr, ready_trajectory, hrv_trajectory} = ri;
   const isDebt = debt > 0;
@@ -900,12 +900,13 @@ function recoveryIntelHTML(debt, log, ri){
   const deltaColor = delta <= 0 ? '#22c55e' : delta <= 1 ? '#f59e0b' : '#ef4444';
   const deltaLabel = delta <= 0 ? `+${Math.abs(delta).toFixed(1)}h surplus` : `-${delta.toFixed(1)}h deficit`;
 
-  // Bedtime CTA — the hero actionable number
-  const bedtime = payback_plan?.bedtime || maintenance_bedtime;
+  // Single canonical bedtime — Tonight's Sleep Plan is the source of truth.
+  // If in debt, we note how much sleep is needed on top of that.
+  const bedtime = optimalBed || payback_plan?.bedtime || maintenance_bedtime;
+  const wakeContext = avg_wake_time ? `Avg wake time: ${avg_wake_time}` : '';
   const bedtimeContext = payback_plan
-    ? `to get ${payback_plan.target_hrs}h and start paying back your debt`
-    : `to hit your personal target of ${personal_target}h`;
-  const wakeContext = avg_wake_time ? `Based on your avg wake time of ${avg_wake_time}` : '';
+    ? `Aim for ${payback_plan.target_hrs}h to start repaying your ${debt}h debt`
+    : `Your personal sweet spot — ${personal_target}h based on your best recovery nights`;
 
   const bedtimeCTA = bedtime ? `
     <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:14px 18px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
@@ -914,9 +915,9 @@ function recoveryIntelHTML(debt, log, ri){
         <div style="font-size:36px;font-weight:900;letter-spacing:-1px;color:var(--text);line-height:1">${bedtime}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px">${bedtimeContext}</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;color:var(--muted)">${wakeContext}</div>
-        ${payback_plan ? `<div style="font-size:11px;color:#f59e0b;margin-top:4px;font-weight:600">Clear debt in ${payback_plan.nights} nights</div>` : ''}
+      <div style="text-align:right;font-size:11px;color:var(--muted)">
+        <div>${wakeContext}</div>
+        ${payback_plan ? `<div style="color:#f59e0b;font-weight:600;margin-top:4px">Clear in ${payback_plan.nights} nights</div>` : ''}
       </div>
     </div>` : '';
 
