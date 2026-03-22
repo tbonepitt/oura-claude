@@ -67,12 +67,14 @@ def linreg(xs, ys):
 
 def clamp(v, lo, hi): return max(lo, min(hi, v))
 
-# ── Upstash Redis (KV store for feedback & user counter) ──────────────────────
+# ── KV store (Vercel KV / Upstash Redis REST) ─────────────────────────────────
 
 def kv(cmd_args):
-    """Execute an Upstash Redis REST command. Returns result or None if KV not configured."""
-    url   = os.environ.get("UPSTASH_REDIS_REST_URL", "").rstrip("/")
-    token = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
+    """Execute a Redis REST command. Supports Vercel KV or Upstash env var names."""
+    url   = (os.environ.get("KV_REST_API_URL") or
+             os.environ.get("UPSTASH_REDIS_REST_URL", "")).rstrip("/")
+    token = (os.environ.get("KV_REST_API_TOKEN") or
+             os.environ.get("UPSTASH_REDIS_REST_TOKEN", ""))
     if not url or not token:
         return None
     try:
