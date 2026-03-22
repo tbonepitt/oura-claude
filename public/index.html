@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Oura Health Dashboard</title>
+<title>Oura Edge</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -199,7 +199,7 @@ canvas{display:block}
 .ring-card{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .ring-card-left{display:flex;align-items:center;gap:14px}
 .ring-emoji{font-size:28px;line-height:1}
-.ring-img{width:52px;height:52px;object-fit:contain;border-radius:8px;filter:drop-shadow(0 2px 8px rgba(99,102,241,.35))}
+.ring-img{width:56px;height:56px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .ring-model{font-size:16px;font-weight:800;letter-spacing:-.3px}
 .ring-details{font-size:12px;color:var(--muted);margin-top:3px}
 .ring-details span{margin-right:12px}
@@ -353,7 +353,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
 <div id="setup-screen">
   <div class="setup-card">
     <div class="setup-logo">🩺</div>
-    <h2 class="setup-title">Oura Health Dashboard</h2>
+    <h2 class="setup-title">Oura Edge</h2>
     <p class="setup-sub">Predict your readiness 7 days out, decode what drives your deep sleep, catch crash days before they happen — all from your own Oura data.</p>
 
     <!-- Auth method tabs -->
@@ -400,7 +400,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
 </div>
 
 <header>
-  <h1>🩺 <span id="userName">Oura</span> Health Dashboard <span style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle">v3.0</span></h1>
+  <h1>Oura <span>Edge</span> <span style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle">v3.0</span></h1>
   <div class="header-right">
     <div class="dot"></div>
     <div class="date-badge" id="dateLabel">Loading…</div>
@@ -410,7 +410,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
       <div class="acct-dropdown" id="acctDropdown">
         <div class="acct-dropdown-header">
           <div class="acct-dropdown-name" id="acctName">My Account</div>
-          <div class="acct-dropdown-sub">Oura Health Dashboard</div>
+          <div class="acct-dropdown-sub">Oura Edge</div>
         </div>
         <button class="acct-item" onclick="refreshData()">
           <span class="acct-icon">↻</span> Refresh Data
@@ -535,9 +535,29 @@ let globalData=null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function ringImgUrl(color){
-  const m={'silver':'silver','black':'black','brushed silver':'brushed-silver','stealth':'stealth','gold':'gold','rose gold':'rose-gold'};
-  const slug=m[(color||'').toLowerCase().trim()]||'silver';
-  return`https://ourahealth.imgix.net/blue-sky/pop/gen4/finishes-carousel-slide-${slug}.png`;
+  // Returns an inline SVG ring icon matched to the ring's finish color
+  const key=(color||'').toLowerCase().trim();
+  const palettes={
+    'silver':      {a:'#e8eaf0',b:'#a0a4b0',c:'#c8cad4'},
+    'black':       {a:'#3a3d47',b:'#1a1c22',c:'#2a2d35'},
+    'brushed silver':{a:'#d4d6de',b:'#8c8f9c',c:'#b8bac4'},
+    'stealth':     {a:'#4a4d5e',b:'#2a2d3a',c:'#383b4a'},
+    'gold':        {a:'#f0c060',b:'#b8882a',c:'#d4a040'},
+    'rose gold':   {a:'#e0a0a8',b:'#b06878',c:'#c88090'},
+  };
+  const p=palettes[key]||palettes['silver'];
+  return`<svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="rg_outer" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${p.a}"/><stop offset="100%" stop-color="${p.b}"/></linearGradient>
+      <linearGradient id="rg_inner" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${p.c}"/><stop offset="100%" stop-color="${p.b}"/></linearGradient>
+      <filter id="rg_shadow"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity="0.4"/></filter>
+    </defs>
+    <ellipse cx="28" cy="30" rx="24" ry="8" fill="${p.b}" opacity="0.35" filter="url(#rg_shadow)"/>
+    <circle cx="28" cy="26" r="22" stroke="url(#rg_outer)" stroke-width="9" fill="none" filter="url(#rg_shadow)"/>
+    <circle cx="28" cy="26" r="22" stroke="url(#rg_inner)" stroke-width="9" fill="none" stroke-dasharray="69 69" stroke-dashoffset="34"/>
+    <circle cx="28" cy="26" r="22" stroke="${p.a}" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <circle cx="28" cy="26" r="13.5" stroke="${p.b}" stroke-width="1" fill="none" opacity="0.3"/>
+  </svg>`;
 }
 function resLevelColor(level){
   return {limited:'#ef4444',adequate:'#f59e0b',solid:'#3b82f6',strong:'#22c55e',exceptional:'#a855f7'}[level]||'#6b7280';
@@ -580,7 +600,7 @@ function render(d){
   document.getElementById('today').innerHTML=`
   <div class="ring-card">
     <div class="ring-card-left">
-      <img class="ring-img" src="${ringImgUrl(ring?.color)}" alt="Oura Ring" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span style=\'font-size:28px\'>💍</span>')" />
+      <div class="ring-emoji">💍</div>
       <div>
         <div class="ring-model">Oura ${ringModel}${ring?.color?' · '+ring.color:''}</div>
         <div class="ring-details">
