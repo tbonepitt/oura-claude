@@ -340,6 +340,120 @@ def calc_sleep_debt(sleep_detail, target_hours=8.0):
                     "debt":round(nightly_debt,2),"cumulative":round(debt_hours,2)})
     return round(debt_hours, 1), log
 
+def calc_recovery_intelligence(detail, ready_data, sleep_data, hrv_series, debt_log, debt):
+    """Compute personal sleep target, payback plan, debt trend, recovery rate, personal records, trajectories."""
+    import math
+
+    # 1. Personal sleep target — avg sleep on nights before top-quartile readiness
+    ready_scores_all = [(r.get("day",""), r.get("score",0)) for r in ready_data if r.get("score")]
+    if ready_scores_all:
+        q75 = sorted([s for _,s in ready_scores_all])[int(len(ready_scores_all)*0.75)]
+        top_ready_days = {day for day,score in ready_scores_all if score >= q75}
+        target_nights = []
+        for d in detail:
+            day_after = (date.fromisoformat(d["day"]) + timedelta(days=1)).isoformat() if d.get("day") else None
+            if day_after and day_after in top_ready_days:
+                hrs = (d.get("total_sleep_duration") or 0) / 3600
+                if hrs > 4: target_nights.append(hrs)
+        personal_target = round(mean(target_nights), 1) if len(target_nights) >= 4 else 7.5
+    else:
+        personal_target = 7.5
+
+    # 2. Payback plan
+    if debt > 0:
+        nightly_surplus = min(1.0, round(personal_target * 0.12, 1))
+        nights_to_clear = math.ceil(debt / nightly_surplus) if nightly_surplus > 0 else 99
+        payback_plan = {"nights": nights_to_clear, "target_hrs": round(personal_target + nightly_surplus, 1), "surplus": nightly_surplus}
+    else:
+        payback_plan = None
+
+    # 3. Debt trend over last 14 days
+    if len(debt_log) >= 14:
+        recent_cumul = [d["cumulative"] for d in debt_log[-14:]]
+        reg = linreg(list(range(14)), recent_cumul)
+        slope = reg["slope"] if reg else 0
+        debt_trend = {
+            "direction": "accumulating" if slope > 0.05 else "recovering" if slope < -0.05 else "stable",
+            "hrs_per_week": round(abs(slope) * 7, 1)
+        }
+    else:
+        debt_trend = {"direction": "stable", "hrs_per_week": 0}
+
+    # 4. Last night delta
+    last_night_delta = round(debt_log[-1]["debt"], 1) if debt_log else 0
+
+    # 5. Recovery rate — nights to bounce back after readiness < 65
+    if ready_scores_all:
+        baseline = mean([s for _,s in ready_scores_all])
+        scored_list = ready_scores_all  # list of (day, score) sorted by date
+        recoveries = []
+        for i, (day, score) in enumerate(scored_list):
+            if score < 65:
+                for j in range(i+1, min(i+8, len(scored_list))):
+                    if scored_list[j][1] >= baseline:
+                        recoveries.append(j - i); break
+        recovery_rate = round(mean(recoveries), 1) if recoveries else None
+    else:
+        recovery_rate = None
+
+    # 6. Personal records (all-time from full detail/sleep data)
+    deep_records = [(d.get("day",""), (d.get("deep_sleep_duration") or 0)//60) for d in detail if d.get("deep_sleep_duration")]
+    hrv_records  = [(s.get("day",""), s.get("average_hrv")) for s in sleep_data if s.get("average_hrv")]
+    ready_records = ready_scores_all
+
+    best_deep  = max(deep_records, key=lambda x: x[1]) if deep_records else None
+    best_hrv   = max(hrv_records,  key=lambda x: x[1]) if hrv_records  else None
+    best_ready = max(ready_records, key=lambda x: x[1]) if ready_records else None
+
+    def fmt_record_date(d):
+        try: return date.fromisoformat(d).strftime("%b %d")
+        except: return d
+
+    personal_records = {
+        "best_deep":  {"value": best_deep[1],          "date": fmt_record_date(best_deep[0])}  if best_deep  else None,
+        "best_hrv":   {"value": round(best_hrv[1], 0), "date": fmt_record_date(best_hrv[0])}   if best_hrv   else None,
+        "best_ready": {"value": best_ready[1],          "date": fmt_record_date(best_ready[0])} if best_ready else None,
+    }
+
+    # 7. Readiness trajectory (14-day slope)
+    recent_ready = [s for _,s in ready_scores_all[-14:]]
+    if len(recent_ready) >= 7:
+        reg_r = linreg(list(range(len(recent_ready))), recent_ready)
+        slope_r = reg_r["slope"] if reg_r else 0
+        total_change = round(slope_r * len(recent_ready), 0)
+        ready_trajectory = {
+            "direction": "improving" if slope_r > 0.3 else "declining" if slope_r < -0.3 else "stable",
+            "change_pts": int(total_change)
+        }
+    else:
+        ready_trajectory = {"direction": "stable", "change_pts": 0}
+
+    # 8. HRV trajectory (21-day rolling comparison)
+    hrv_clean = [v for v in hrv_series if v is not None]
+    if len(hrv_clean) >= 28:
+        hrv_recent = mean(hrv_clean[-21:])
+        hrv_prior  = mean(hrv_clean[-42:-21]) if len(hrv_clean) >= 42 else mean(hrv_clean[:-21])
+        pct = round((hrv_recent - hrv_prior) / hrv_prior * 100, 1) if hrv_prior else 0
+        hrv_trajectory = {
+            "direction": "rising" if pct > 3 else "falling" if pct < -3 else "stable",
+            "pct_change": pct,
+            "recent_avg": round(hrv_recent, 0),
+            "prior_avg":  round(hrv_prior, 0)
+        }
+    else:
+        hrv_trajectory = {"direction": "stable", "pct_change": 0, "recent_avg": 0, "prior_avg": 0}
+
+    return {
+        "personal_target":   personal_target,
+        "payback_plan":      payback_plan,
+        "debt_trend":        debt_trend,
+        "last_night_delta":  last_night_delta,
+        "recovery_rate":     recovery_rate,
+        "personal_records":  personal_records,
+        "ready_trajectory":  ready_trajectory,
+        "hrv_trajectory":    hrv_trajectory,
+    }
+
 def build_data(token):
     today=date.today(); end=str(today)
     start60=str(today-timedelta(days=60)); start7=str(today-timedelta(days=7))
@@ -602,6 +716,7 @@ def build_data(token):
     forecast=build_forecast(days,r_map,s_map,a_map,ready_scores,sleep_scores,hrv_series,act_scores)
     anomalies=detect_anomalies(days,s_map,r_map,a_map,sleep_scores,ready_scores,act_scores)
     sleep_debt,debt_log=calc_sleep_debt(detail)
+    recovery_intel=calc_recovery_intelligence(detail,ready_data,sleep_data,hrv_series,debt_log,sleep_debt)
 
     resting_hr_timeline=[{"t":h["timestamp"][:16],"bpm":h["bpm"]} for h in hr_data if h.get("source")=="rest" and h.get("bpm")]
 
@@ -634,6 +749,7 @@ def build_data(token):
         "correlations":corrs,"correlation_insights":correlation_insights,
         "resting_hr":resting_hr_timeline[-200:],"checkin_insights":[],
         "forecast":forecast,"anomalies":anomalies,"sleep_debt":sleep_debt,"debt_log":debt_log,
+        "recovery_intel":recovery_intel,
         "heatmap":heatmap,"hypnogram":hypnogram,"deep_decoder":deep_decoder,"tonight_card":tonight_card,
         "sleep_recommendation": sleep_recommendation,
         "resilience":{
@@ -897,6 +1013,20 @@ def generate_demo_data():
         "resting_hr": resting_hr, "checkin_insights": [],
         "forecast": forecast, "anomalies": anomalies,
         "sleep_debt": sleep_debt, "debt_log": debt_log,
+        "recovery_intel": {
+            "personal_target":  7.3,
+            "payback_plan":     {"nights": 6, "target_hrs": 8.2, "surplus": 0.9},
+            "debt_trend":       {"direction": "accumulating", "hrs_per_week": 1.4},
+            "last_night_delta": 1.3,
+            "recovery_rate":    2.1,
+            "personal_records": {
+                "best_deep":  {"value": 102, "date": "Feb 14"},
+                "best_hrv":   {"value": 89,  "date": "Jan 28"},
+                "best_ready": {"value": 94,  "date": "Feb 02"},
+            },
+            "ready_trajectory": {"direction": "declining", "change_pts": -8},
+            "hrv_trajectory":   {"direction": "falling", "pct_change": -7.2, "recent_avg": 65, "prior_avg": 70},
+        },
         "heatmap": heatmap, "hypnogram": hypnogram,
         "deep_decoder": deep_decoder, "tonight_card": tonight_card,
         "vitals": {

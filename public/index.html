@@ -572,7 +572,7 @@ function fmtActivity(act){
 function render(d){
   destroyAll();
   globalData=d;
-  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,correlation_insights:ci,checkin_insights,forecast,anomalies,sleep_debt,debt_log,heatmap,ring,sleep_recommendation,resilience,workouts}=d;
+  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,correlation_insights:ci,checkin_insights,forecast,anomalies,sleep_debt,debt_log,recovery_intel:ri,heatmap,ring,sleep_recommendation,resilience,workouts}=d;
   const N30=30;
   const labels30=shortDates(days,N30);
   const allLabels=days.map(shortDate);
@@ -668,15 +668,12 @@ function render(d){
   </div>
   ${tonightCardHTML({...d.tonight_card, sleep_recommendation: sleep_recommendation||''}, ci)}
 
-  <div class="g2">
-    <div class="card">
-      <div class="card-title">😴 30-Day Sleep Debt <span class="badge new">New</span></div>
-      ${debtCard(sleep_debt,debt_log)}
-    </div>
-    <div class="card">
-      <div class="card-title">📅 60-Day Readiness Heatmap</div>
-      ${heatmapHTML(heatmap)}
-    </div>
+  ${recoveryIntelHTML(sleep_debt, debt_log, ri)}
+  ${weeklyPatternsHTML(dow, ri)}
+
+  <div class="card">
+    <div class="card-title">📅 60-Day Readiness Heatmap</div>
+    ${heatmapHTML(heatmap)}
   </div>`;
 
   // Today charts
@@ -873,6 +870,175 @@ function predRec(p){
   if(p<75){cls='yellow';txt='🟡 Moderate effort only'}
   if(p<65){cls='red';   txt='🔴 Recovery day — protect sleep tonight'}
   return`<div style="padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;background:${cls==='green'?'rgba(34,197,94,.1)':cls==='yellow'?'rgba(245,158,11,.1)':'rgba(239,68,68,.1)'};color:${cls==='green'?'#22c55e':cls==='yellow'?'#f59e0b':'#ef4444'};border:1px solid ${cls==='green'?'rgba(34,197,94,.2)':cls==='yellow'?'rgba(245,158,11,.2)':'rgba(239,68,68,.2)'}">${txt}</div>`;
+}
+
+// ── Recovery Intelligence Group ───────────────────────────────────────────────
+function trajectoryBadge(direction, changePts){
+  const cfg = {
+    improving: {icon:'↑', color:'#22c55e', bg:'rgba(34,197,94,.12)', label: changePts ? `+${Math.abs(changePts)} pts` : 'Improving'},
+    declining:  {icon:'↓', color:'#ef4444', bg:'rgba(239,68,68,.12)', label: changePts ? `-${Math.abs(changePts)} pts` : 'Declining'},
+    stable:     {icon:'→', color:'#6b7280', bg:'rgba(107,114,128,.12)', label:'Stable'},
+  };
+  const c = cfg[direction] || cfg.stable;
+  return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:${c.color};background:${c.bg};padding:3px 8px;border-radius:20px">${c.icon} ${c.label}</span>`;
+}
+
+function recoveryIntelHTML(debt, log, ri){
+  if (!ri) return `<div class="card"><div class="card-title">😴 Sleep Debt</div>${debtCard(debt, log, 7.5)}</div>`;
+  const {personal_target, payback_plan, debt_trend, last_night_delta, recovery_rate, personal_records: pr, ready_trajectory, hrv_trajectory} = ri;
+  const isDebt = debt > 0;
+  const debtColor = isDebt ? '#ef4444' : '#22c55e';
+  const trendCfg = {
+    accumulating: {color:'#ef4444', icon:'↑', label:'accumulating'},
+    recovering:   {color:'#22c55e', icon:'↓', label:'recovering'},
+    stable:       {color:'#6b7280', icon:'→', label:'stable'},
+  };
+  const td = trendCfg[debt_trend?.direction] || trendCfg.stable;
+
+  // Last night pill
+  const delta = last_night_delta ?? 0;
+  const deltaColor = delta <= 0 ? '#22c55e' : delta <= 1 ? '#f59e0b' : '#ef4444';
+  const deltaLabel = delta <= 0 ? `+${Math.abs(delta).toFixed(1)}h surplus` : `-${delta.toFixed(1)}h deficit`;
+
+  // Payback plan
+  const paybackHTML = payback_plan
+    ? `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 14px;margin-top:12px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#ef4444;margin-bottom:6px">Payback Plan</div>
+        <div style="font-size:13px;color:var(--text)">Sleep <strong>${payback_plan.target_hrs}h</strong> per night for <strong>${payback_plan.nights} nights</strong> to clear your debt</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">That's ${payback_plan.surplus}h extra per night above your personal target of ${personal_target}h</div>
+      </div>`
+    : `<div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:12px 14px;margin-top:12px">
+        <div style="font-size:13px;color:#22c55e;font-weight:600">✓ No debt — you're in a sleep surplus</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Personal target: ${personal_target}h based on your best recovery nights</div>
+      </div>`;
+
+  // Recovery rate + trajectory mini-cards
+  const rrHTML = recovery_rate
+    ? `<div class="stat-item"><div class="val" style="font-size:22px">${recovery_rate}<span style="font-size:13px;color:var(--muted)">d</span></div><div class="lbl">avg recovery after bad night</div></div>`
+    : `<div class="stat-item"><div class="val" style="font-size:22px">—</div><div class="lbl">recovery rate (need more data)</div></div>`;
+
+  const readyDir = ready_trajectory?.direction || 'stable';
+  const readyBadge = trajectoryBadge(readyDir, ready_trajectory?.change_pts);
+
+  const hrvDir = hrv_trajectory?.direction === 'rising' ? 'improving' : hrv_trajectory?.direction === 'falling' ? 'declining' : 'stable';
+  const hrvBadge = trajectoryBadge(hrvDir, null);
+  const hrvDesc = hrv_trajectory?.pct_change
+    ? `${Math.abs(hrv_trajectory.pct_change)}% ${hrv_trajectory.direction} (${hrv_trajectory.prior_avg}→${hrv_trajectory.recent_avg} ms)`
+    : 'Stable';
+
+  // Personal records
+  const recHTML = pr ? `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px">
+      ${pr.best_ready ? `<div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#22c55e">${pr.best_ready.value}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Best readiness</div>
+        <div style="font-size:10px;color:var(--muted)">${pr.best_ready.date}</div></div>` : ''}
+      ${pr.best_deep ? `<div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#3b82f6">${pr.best_deep.value}m</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Best deep sleep</div>
+        <div style="font-size:10px;color:var(--muted)">${pr.best_deep.date}</div></div>` : ''}
+      ${pr.best_hrv ? `<div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#a855f7">${pr.best_hrv.value}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Best HRV</div>
+        <div style="font-size:10px;color:var(--muted)">${pr.best_hrv.date}</div></div>` : ''}
+    </div>` : '';
+
+  return `
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="margin:0">😴 Recovery Intelligence</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:${td.color};background:${td.color === '#ef4444' ? 'rgba(239,68,68,.12)' : td.color === '#22c55e' ? 'rgba(34,197,94,.12)' : 'rgba(107,114,128,.12)'};padding:3px 8px;border-radius:20px;font-weight:700">${td.icon} Debt ${td.label} ${debt_trend?.hrs_per_week ? debt_trend.hrs_per_week+'h/wk' : ''}</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">Cumulative Debt (30 days)</div>
+        <div style="font-size:48px;font-weight:900;letter-spacing:-2px;line-height:1;color:${debtColor}">${isDebt?'+':''}${debt}<span style="font-size:18px;color:var(--muted)">h</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">vs your personal target of ${personal_target}h/night</div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">Last Night</div>
+        <div style="font-size:24px;font-weight:800;color:${deltaColor}">${deltaLabel}</div>
+        <div style="height:6px;background:var(--surface2);border-radius:3px;margin-top:8px;overflow:hidden">
+          <div style="height:100%;width:${Math.min(Math.abs(debt)/20*100,100)}%;background:${debtColor};border-radius:3px;transition:width .6s"></div>
+        </div>
+      </div>
+    </div>
+
+    ${paybackHTML}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">
+      ${rrHTML}
+      <div class="stat-item">
+        <div class="val" style="font-size:14px;line-height:1.4">${readyBadge}<div style="font-size:11px;color:var(--muted);margin-top:4px">14-day readiness</div></div>
+      </div>
+      <div class="stat-item">
+        <div class="val" style="font-size:14px;line-height:1.4">${hrvBadge}<div style="font-size:11px;color:var(--muted);margin-top:4px">${hrvDesc}</div></div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏆 Your Personal Records</div>
+      ${recHTML}
+    </div>
+
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">30-Day Debt Chart</div>
+      <div style="height:120px"><canvas id="chartDebt"></canvas></div>
+    </div>
+  </div>`;
+}
+
+// ── Weekly Patterns ───────────────────────────────────────────────────────────
+function weeklyPatternsHTML(dow, ri){
+  const labels = dow.labels || ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const sleepAvgs = dow.sleep || [];
+  const readyAvgs = dow.ready || [];
+
+  if (!sleepAvgs.length) return '';
+
+  // Find best/worst
+  const validSleep = sleepAvgs.map((v,i)=>({i,v:Math.round(v||0)})).filter(x=>x.v>0);
+  const bestDay  = validSleep.reduce((a,b)=>a.v>b.v?a:b, {v:0,i:0});
+  const worstDay = validSleep.reduce((a,b)=>a.v<b.v?a:b, {v:999,i:0});
+
+  const bars = labels.map((day, i) => {
+    const sv = Math.round(sleepAvgs[i] || 0);
+    const rv = Math.round(readyAvgs[i] || 0);
+    if (!sv) return '';
+    const isBest  = i === bestDay.i;
+    const isWorst = i === worstDay.i;
+    const barColor = isBest ? '#22c55e' : isWorst ? '#ef4444' : '#3b82f6';
+    const pct = Math.max(0, (sv - 50) / 50 * 100);
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+        <div style="font-size:11px;font-weight:${isBest||isWorst?'800':'500'};color:${isBest?'#22c55e':isWorst?'#ef4444':'var(--muted)'}">${sv}</div>
+        <div style="width:100%;background:var(--surface2);border-radius:4px;height:60px;display:flex;align-items:flex-end;overflow:hidden">
+          <div style="width:100%;height:${pct}%;background:${barColor};border-radius:4px 4px 0 0;transition:height .6s;min-height:4px"></div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);font-weight:${isBest||isWorst?'700':'400'}">${day}</div>
+        ${isBest  ? '<div style="font-size:9px;color:#22c55e;font-weight:700">BEST</div>'  : ''}
+        ${isWorst ? '<div style="font-size:9px;color:#ef4444;font-weight:700">WORST</div>' : ''}
+      </div>`;
+  }).join('');
+
+  const insight = bestDay.v && worstDay.v
+    ? `You sleep best on <strong>${labels[bestDay.i]}</strong> (avg ${bestDay.v}) and worst on <strong>${labels[worstDay.i]}</strong> (avg ${worstDay.v}) — a ${bestDay.v - worstDay.v} point gap.`
+    : '';
+
+  return `
+  <div class="card">
+    <div class="card-title">📅 Your Weekly Sleep Pattern</div>
+    ${insight ? `<div style="font-size:13px;color:var(--text);background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:14px">${insight}</div>` : ''}
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      ${bars}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <div style="font-size:11px;color:var(--muted)">Sleep score avg by day of week · last 60 days</div>
+    </div>
+  </div>`;
 }
 
 function debtCard(debt, log){
@@ -1209,6 +1375,12 @@ function renderSleepScience(hyp, dec) {
       <div class="card-title">❤️ Heart Rate During Sleep</div>
       ${hyp ? `
       <div style="height:200px"><canvas id="chartSleepHR"></canvas></div>
+      <div class="hypno-legend" style="margin-top:8px">
+        <span><span class="hypno-swatch" style="background:#3b82f6"></span>Deep</span>
+        <span><span class="hypno-swatch" style="background:#a855f7"></span>REM</span>
+        <span><span class="hypno-swatch" style="background:#6366f1"></span>Light</span>
+        <span><span class="hypno-swatch" style="background:#374151"></span>Awake</span>
+      </div>
       <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="stat-item"><div class="val" style="font-size:18px">${hyp.avg_hr ? Math.round(hyp.avg_hr) : '—'} <span style="font-size:12px;color:var(--muted)">bpm</span></div><div class="lbl">Avg HR</div></div>
         <div class="stat-item"><div class="val" style="font-size:18px">${hyp.lowest_hr || '—'} <span style="font-size:12px;color:var(--muted)">bpm</span></div><div class="lbl">Lowest HR</div></div>
@@ -1392,26 +1564,51 @@ function renderSleepScience(hyp, dec) {
     });
   }
 
-  // Sleep HR chart
+  // Sleep HR chart — color segments by sleep stage
   if (hyp && hyp.hr && document.getElementById('chartSleepHR')) {
+    // HR data is at 5-min intervals; stages may have more points — align by index
+    const hrData = hyp.hr;
+    const stageColors = {'1':'#3b82f6','2':'#6366f1','3':'#a855f7','4':'#374151'};
+    // Build per-point stage lookup (stage string char → color)
+    const stageArr = hyp.colors || []; // already one color per 5-min bucket
+
+    // Align HR to stage labels (HR items and stage chars are both 5-min; pick the shorter)
+    const hrLabels = hyp.labels.slice(0, hrData.length);
+    const stageForHR = stageArr.slice(0, hrData.length);
+
     charts.sleepHR = new Chart(document.getElementById('chartSleepHR'), {
       type: 'line',
       data: {
-        labels: hyp.labels,
+        labels: hrLabels,
         datasets: [{
           label: 'Heart Rate',
-          data: hyp.hr,
-          borderColor: '#ef4444',
-          backgroundColor: 'rgba(239,68,68,.08)',
-          fill: true,
-          borderWidth: 1.5,
+          data: hrData,
+          borderColor: '#ef4444', // fallback; overridden per-segment below
+          backgroundColor: 'rgba(0,0,0,0)',
+          fill: false,
+          borderWidth: 2,
           pointRadius: 0,
-          tension: 0.4,
+          tension: 0.3,
+          segment: {
+            borderColor: ctx => stageForHR[ctx.p0DataIndex] || '#ef4444',
+          },
         }]
       },
       options: {
         responsive:true, maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8,callbacks:{label:c=>`${Math.round(c.raw)} bpm`}}},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8,
+            callbacks:{
+              label: c => {
+                const stageColor = stageForHR[c.dataIndex];
+                const stageName = stageColor==='#3b82f6'?'Deep':stageColor==='#a855f7'?'REM':stageColor==='#6366f1'?'Light':'Awake';
+                return [`${Math.round(c.raw)} bpm`, `Stage: ${stageName}`];
+              }
+            }
+          }
+        },
         scales:{
           x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0,font:{size:10}}},
           y:{grid:{color:'#1c202e'},ticks:{callback:v=>v+' bpm'}}
