@@ -359,13 +359,46 @@ def calc_recovery_intelligence(detail, ready_data, sleep_data, hrv_series, debt_
     else:
         personal_target = 7.5
 
-    # 2. Payback plan
+    # 2. Average wake time from last 7 nights (to compute bedtime target)
+    wake_times_min = []
+    for d in detail[-7:]:
+        end_str = d.get("bedtime_end", "")
+        if end_str:
+            try:
+                wake_dt = datetime.fromisoformat(end_str)
+                # Convert to minutes since midnight
+                wake_min = wake_dt.hour * 60 + wake_dt.minute
+                wake_times_min.append(wake_min)
+            except Exception:
+                pass
+    avg_wake_min = round(mean(wake_times_min)) if wake_times_min else None
+
+    def mins_to_hhmm(m):
+        """Convert minutes-since-midnight to HH:MM AM/PM, handling negative (previous day)."""
+        m = m % (24 * 60)
+        h, mn = divmod(m, 60)
+        period = "AM" if h < 12 else "PM"
+        h12 = h % 12 or 12
+        return f"{h12}:{mn:02d} {period}"
+
+    # 3. Payback plan with bedtime
     if debt > 0:
         nightly_surplus = min(1.0, round(personal_target * 0.12, 1))
         nights_to_clear = math.ceil(debt / nightly_surplus) if nightly_surplus > 0 else 99
-        payback_plan = {"nights": nights_to_clear, "target_hrs": round(personal_target + nightly_surplus, 1), "surplus": nightly_surplus}
+        target_hrs = round(personal_target + nightly_surplus, 1)
+        bedtime_str = mins_to_hhmm(avg_wake_min - round(target_hrs * 60)) if avg_wake_min else None
+        payback_plan = {
+            "nights": nights_to_clear,
+            "target_hrs": target_hrs,
+            "surplus": nightly_surplus,
+            "bedtime": bedtime_str,
+            "wake_time": mins_to_hhmm(avg_wake_min) if avg_wake_min else None,
+        }
     else:
+        # Even with no debt, show the maintenance bedtime
+        maintenance_bedtime = mins_to_hhmm(avg_wake_min - round(personal_target * 60)) if avg_wake_min else None
         payback_plan = None
+        avg_wake_str = mins_to_hhmm(avg_wake_min) if avg_wake_min else None
 
     # 3. Debt trend over last 14 days
     if len(debt_log) >= 14:
@@ -443,15 +476,21 @@ def calc_recovery_intelligence(detail, ready_data, sleep_data, hrv_series, debt_
     else:
         hrv_trajectory = {"direction": "stable", "pct_change": 0, "recent_avg": 0, "prior_avg": 0}
 
+    # Maintenance bedtime (no debt case)
+    maintenance_bedtime = mins_to_hhmm(avg_wake_min - round(personal_target * 60)) if avg_wake_min else None
+    avg_wake_str = mins_to_hhmm(avg_wake_min) if avg_wake_min else None
+
     return {
-        "personal_target":   personal_target,
-        "payback_plan":      payback_plan,
-        "debt_trend":        debt_trend,
-        "last_night_delta":  last_night_delta,
-        "recovery_rate":     recovery_rate,
-        "personal_records":  personal_records,
-        "ready_trajectory":  ready_trajectory,
-        "hrv_trajectory":    hrv_trajectory,
+        "personal_target":      personal_target,
+        "payback_plan":         payback_plan,
+        "maintenance_bedtime":  maintenance_bedtime,
+        "avg_wake_time":        avg_wake_str,
+        "debt_trend":           debt_trend,
+        "last_night_delta":     last_night_delta,
+        "recovery_rate":        recovery_rate,
+        "personal_records":     personal_records,
+        "ready_trajectory":     ready_trajectory,
+        "hrv_trajectory":       hrv_trajectory,
     }
 
 def build_data(token):
@@ -1014,11 +1053,13 @@ def generate_demo_data():
         "forecast": forecast, "anomalies": anomalies,
         "sleep_debt": sleep_debt, "debt_log": debt_log,
         "recovery_intel": {
-            "personal_target":  7.3,
-            "payback_plan":     {"nights": 6, "target_hrs": 8.2, "surplus": 0.9},
-            "debt_trend":       {"direction": "accumulating", "hrs_per_week": 1.4},
-            "last_night_delta": 1.3,
-            "recovery_rate":    2.1,
+            "personal_target":     7.3,
+            "payback_plan":        {"nights": 6, "target_hrs": 8.2, "surplus": 0.9, "bedtime": "10:05 PM", "wake_time": "6:17 AM"},
+            "maintenance_bedtime": "10:55 PM",
+            "avg_wake_time":       "6:17 AM",
+            "debt_trend":          {"direction": "accumulating", "hrs_per_week": 1.4},
+            "last_night_delta":    1.3,
+            "recovery_rate":       2.1,
             "personal_records": {
                 "best_deep":  {"value": 102, "date": "Feb 14"},
                 "best_hrv":   {"value": 89,  "date": "Jan 28"},

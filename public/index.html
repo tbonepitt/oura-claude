@@ -885,7 +885,7 @@ function trajectoryBadge(direction, changePts){
 
 function recoveryIntelHTML(debt, log, ri){
   if (!ri) return `<div class="card"><div class="card-title">😴 Sleep Debt</div>${debtCard(debt, log, 7.5)}</div>`;
-  const {personal_target, payback_plan, debt_trend, last_night_delta, recovery_rate, personal_records: pr, ready_trajectory, hrv_trajectory} = ri;
+  const {personal_target, payback_plan, maintenance_bedtime, avg_wake_time, debt_trend, last_night_delta, recovery_rate, personal_records: pr, ready_trajectory, hrv_trajectory} = ri;
   const isDebt = debt > 0;
   const debtColor = isDebt ? '#ef4444' : '#22c55e';
   const trendCfg = {
@@ -900,16 +900,33 @@ function recoveryIntelHTML(debt, log, ri){
   const deltaColor = delta <= 0 ? '#22c55e' : delta <= 1 ? '#f59e0b' : '#ef4444';
   const deltaLabel = delta <= 0 ? `+${Math.abs(delta).toFixed(1)}h surplus` : `-${delta.toFixed(1)}h deficit`;
 
-  // Payback plan
+  // Bedtime CTA — the hero actionable number
+  const bedtime = payback_plan?.bedtime || maintenance_bedtime;
+  const bedtimeContext = payback_plan
+    ? `to get ${payback_plan.target_hrs}h and start paying back your debt`
+    : `to hit your personal target of ${personal_target}h`;
+  const wakeContext = avg_wake_time ? `Based on your avg wake time of ${avg_wake_time}` : '';
+
+  const bedtimeCTA = bedtime ? `
+    <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:14px 18px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:4px">🛏️ Tonight's Target Bedtime</div>
+        <div style="font-size:36px;font-weight:900;letter-spacing:-1px;color:var(--text);line-height:1">${bedtime}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">${bedtimeContext}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">${wakeContext}</div>
+        ${payback_plan ? `<div style="font-size:11px;color:#f59e0b;margin-top:4px;font-weight:600">Clear debt in ${payback_plan.nights} nights</div>` : ''}
+      </div>
+    </div>` : '';
+
+  // Payback plan detail row
   const paybackHTML = payback_plan
-    ? `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 14px;margin-top:12px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#ef4444;margin-bottom:6px">Payback Plan</div>
-        <div style="font-size:13px;color:var(--text)">Sleep <strong>${payback_plan.target_hrs}h</strong> per night for <strong>${payback_plan.nights} nights</strong> to clear your debt</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">That's ${payback_plan.surplus}h extra per night above your personal target of ${personal_target}h</div>
+    ? `<div style="background:rgba(239,68,68,.06);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:var(--muted)">
+        Sleep <strong style="color:var(--text)">${payback_plan.target_hrs}h</strong> for <strong style="color:var(--text)">${payback_plan.nights} nights</strong> — that's ${payback_plan.surplus}h extra above your personal target of ${personal_target}h
       </div>`
-    : `<div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:12px 14px;margin-top:12px">
-        <div style="font-size:13px;color:#22c55e;font-weight:600">✓ No debt — you're in a sleep surplus</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Personal target: ${personal_target}h based on your best recovery nights</div>
+    : `<div style="background:rgba(34,197,94,.06);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:#22c55e;font-weight:600">
+        ✓ No debt — you're in a sleep surplus. Keep hitting ${personal_target}h to stay there.
       </div>`;
 
   // Recovery rate + trajectory mini-cards
@@ -967,6 +984,7 @@ function recoveryIntelHTML(debt, log, ri){
       </div>
     </div>
 
+    ${bedtimeCTA}
     ${paybackHTML}
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">
