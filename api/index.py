@@ -324,22 +324,32 @@ def build_data(token):
     today=date.today(); end=str(today)
     start60=str(today-timedelta(days=60)); start7=str(today-timedelta(days=7))
 
-    sleep    = fetch("daily_sleep",              start60, end, token)
-    ready    = fetch("daily_readiness",          start60, end, token)
-    activity = fetch("daily_activity",           start60, end, token)
-    detail   = fetch("sleep",                    start60, end, token)
-    hr_data  = fetch("heartrate",                start7,  end, token)
-    spo2     = fetch("daily_spo2",               start60, end, token)
-    stress   = fetch("daily_stress",             start60, end, token)
-    cardio   = fetch("daily_cardiovascular_age", start60, end, token)
-    vo2      = fetch("vO2_max",                  start60, end, token)
-    user_info= fetch("personal_info",            None,    None,token)
+    sleep           = fetch("daily_sleep",              start60, end,  token)
+    ready           = fetch("daily_readiness",          start60, end,  token)
+    activity        = fetch("daily_activity",           start60, end,  token)
+    detail          = fetch("sleep",                    start60, end,  token)
+    hr_data         = fetch("heartrate",                start7,  end,  token)
+    spo2            = fetch("daily_spo2",               start60, end,  token)
+    stress          = fetch("daily_stress",             start60, end,  token)
+    cardio          = fetch("daily_cardiovascular_age", start60, end,  token)
+    vo2             = fetch("vO2_max",                  start60, end,  token)
+    resilience_data = fetch("daily_resilience",         start60, end,  token)
+    sleep_time_data = fetch("sleep_time",               start60, end,  token)
+    rest_mode_data  = fetch("rest_mode_period",         start60, end,  token)
+    workout_data    = fetch("workout",                  start60, end,  token)
+    ring_config     = fetch("ring_configuration",       None,    None, token)
+    user_info       = fetch("personal_info",            None,    None, token)
 
-    # Index new vitals by day
-    spo2_map   = {d["day"]: d for d in (spo2   if isinstance(spo2,   list) else [])}
-    stress_map = {d["day"]: d for d in (stress if isinstance(stress, list) else [])}
-    cardio_map = {d["day"]: d for d in (cardio if isinstance(cardio, list) else [])}
-    vo2_map    = {d["day"]: d for d in (vo2    if isinstance(vo2,    list) else [])}
+    # Index all endpoints by day
+    spo2_map       = {d["day"]: d for d in (spo2            if isinstance(spo2,            list) else [])}
+    stress_map     = {d["day"]: d for d in (stress          if isinstance(stress,          list) else [])}
+    cardio_map     = {d["day"]: d for d in (cardio          if isinstance(cardio,          list) else [])}
+    vo2_map        = {d["day"]: d for d in (vo2             if isinstance(vo2,             list) else [])}
+    resilience_map = {d["day"]: d for d in (resilience_data if isinstance(resilience_data, list) else [])}
+    sleep_time_map = {d["day"]: d for d in (sleep_time_data if isinstance(sleep_time_data, list) else [])}
+    rest_periods   = rest_mode_data if isinstance(rest_mode_data, list) else []
+    workout_list   = workout_data   if isinstance(workout_data,   list) else []
+    ring_info      = ring_config[0] if isinstance(ring_config, list) and ring_config else {}
 
     activity_map={a["day"]:a for a in activity}
     s_map={d["day"]:d for d in sleep}; r_map={d["day"]:d for d in ready}; a_map={d["day"]:d for d in activity}
@@ -382,12 +392,84 @@ def build_data(token):
         if a_map[d].get("steps"): dow_steps[dow].append(a_map[d]["steps"])
 
     n=len(days)
+
+    # ── Workouts ──────────────────────────────────────────────────────────────
+    workout_by_day = {}
+    for w in workout_list:
+        day = w.get("day", "")
+        if day: workout_by_day.setdefault(day, []).append(w)
+
+    def workout_dur_min(w):
+        try:
+            s = datetime.fromisoformat(w["start_datetime"].replace("Z",""))
+            e = datetime.fromisoformat(w["end_datetime"].replace("Z",""))
+            return max(0, int((e - s).total_seconds() // 60))
+        except Exception: return 0
+
+    workout_min_series  = [sum(workout_dur_min(w) for w in workout_by_day.get(d,[])) for d in days]
+    workout_cal_series  = [round(sum((w.get("calories") or 0) for w in workout_by_day.get(d,[]))) for d in days]
+    workout_active_days = [1 if workout_by_day.get(d) else 0 for d in days]
+
+    activity_counts = {}
+    for w in workout_list:
+        act = w.get("activity","other")
+        activity_counts[act] = activity_counts.get(act,0) + 1
+    activity_counts = dict(sorted(activity_counts.items(), key=lambda x: -x[1]))
+
+    recent_cutoff = str(today - timedelta(days=21))
+    def fmt_workout(w):
+        return {"day":w.get("day"),"activity":w.get("activity","other"),
+                "intensity":w.get("intensity","moderate"),"duration_min":workout_dur_min(w),
+                "calories":round(w.get("calories") or 0),
+                "start_time":w.get("start_datetime","")[:16] if w.get("start_datetime") else ""}
+    recent_workouts = [fmt_workout(w) for w in sorted(
+        [w for w in workout_list if w.get("day","") >= recent_cutoff],
+        key=lambda w: w.get("start_datetime",""), reverse=True
+    )[:20]]
+
+    workout_ready_corr = pearson(workout_active_days[:-1], ready_scores[1:]) if n > 5 else None
+
+    # ── Resilience ────────────────────────────────────────────────────────────
+    RESILIENCE_SCORE = {"limited":25,"adequate":45,"solid":65,"strong":80,"exceptional":95}
+    RESILIENCE_COLOR = {"limited":"#ef4444","adequate":"#f59e0b","solid":"#3b82f6","strong":"#22c55e","exceptional":"#a855f7"}
+    res_level_series    = [resilience_map.get(d,{}).get("level") for d in days]
+    res_numeric_series  = [RESILIENCE_SCORE.get(l) for l in res_level_series]
+    res_sleep_rec       = [resilience_map.get(d,{}).get("contributors",{}).get("sleep_recovery") for d in days]
+    res_day_rec         = [resilience_map.get(d,{}).get("contributors",{}).get("daytime_recovery") for d in days]
+    res_stress          = [resilience_map.get(d,{}).get("contributors",{}).get("stress") for d in days]
+    latest_res          = resilience_map.get(days[-1],{}) if days else {}
+    latest_res_level    = latest_res.get("level","")
+    latest_res_contribs = latest_res.get("contributors",{})
+
+    # ── Sleep Recommendation ──────────────────────────────────────────────────
+    SLEEP_REC_MAP = {"earlier_bedtime":"Go to bed 30–60 min earlier tonight",
+                     "later_bedtime":"You can stay up a bit later tonight",
+                     "maintain_bedtime":"Your bedtime is dialed in — stick with it",
+                     "not_enough_data":"Building your sleep profile…"}
+    latest_sleep_time    = sleep_time_map.get(days[-1],{}) if days else {}
+    sleep_rec_raw        = latest_sleep_time.get("recommendation","")
+    sleep_recommendation = SLEEP_REC_MAP.get(sleep_rec_raw, sleep_rec_raw.replace("_"," ").title() if sleep_rec_raw else "")
+
+    # ── Ring Configuration ────────────────────────────────────────────────────
+    HW_NAMES    = {"gen1":"Ring 1","gen2":"Ring 2","gen2m":"Ring 2M","gen3":"Ring 3","gen4":"Ring 4"}
+    COLOR_NAMES = {"silver":"Silver","black":"Black","stealth_black":"Stealth Black","gold":"Gold",
+                   "rose_gold":"Rose Gold","matte_black":"Matte Black","sandstone":"Sandstone",
+                   "brushed_titanium":"Brushed Titanium","horizon_silver":"Horizon Silver","horizon_gold":"Horizon Gold"}
+    ring_display = {
+        "model":    HW_NAMES.get(ring_info.get("hardware_type",""), ring_info.get("hardware_type","Unknown").replace("_"," ").title()),
+        "color":    COLOR_NAMES.get(ring_info.get("color",""),       ring_info.get("color","").replace("_"," ").title()),
+        "size":     ring_info.get("size"),
+        "firmware": ring_info.get("firmware_version",""),
+        "since":    (ring_info.get("set_up_at","") or "")[:10],
+    }
+
     corrs={"steps_deep":pearson(steps_series[:n-1],deep_series[1:n]),
            "sleep_ready":pearson(sleep_scores[:n-1],ready_scores[1:n]),
            "cal_deep":pearson(calories[:n-1],deep_series[1:n]),
            "hrv_sleep":pearson(hrv_series,sleep_scores),
            "temp_sleep":pearson(temp_series,sleep_scores),
-           "rest_ready":pearson(rest_series,ready_scores)}
+           "rest_ready":pearson(rest_series,ready_scores),
+           "workout_ready":workout_ready_corr}
 
     r_s=corrs["sleep_ready"] or 0; r_h=pearson(hrv_series[:n-1],ready_scores[1:n]) or 0
     tw=abs(r_s)+abs(r_h)+0.01
@@ -428,6 +510,7 @@ def build_data(token):
     latest_vo2     = next((v for v in reversed(vo2_series) if v is not None), None)
 
     return {"generated":str(today),"user":{"first_name":first_name},"days":days,
+        "ring": ring_display,
         "scores":{"sleep":sleep_scores,"ready":ready_scores,"activity":act_scores,
                   "steps":steps_series,"calories":calories,"deep":deep_series,"rem":rem_series,
                   "restfulness":rest_series,"efficiency":eff_series,"hrv":hrv_series,"rhr":rhr_series,"temp":temp_series},
@@ -448,6 +531,22 @@ def build_data(token):
         "correlations":corrs,"resting_hr":resting_hr_timeline[-200:],"checkin_insights":[],
         "forecast":forecast,"anomalies":anomalies,"sleep_debt":sleep_debt,"debt_log":debt_log,
         "heatmap":heatmap,"hypnogram":hypnogram,"deep_decoder":deep_decoder,"tonight_card":tonight_card,
+        "sleep_recommendation": sleep_recommendation,
+        "resilience":{
+            "levels":res_level_series,"numeric":res_numeric_series,
+            "sleep_recovery":res_sleep_rec,"daytime_recovery":res_day_rec,"stress":res_stress,
+            "latest":{"level":latest_res_level,
+                      "sleep_recovery":latest_res_contribs.get("sleep_recovery"),
+                      "daytime_recovery":latest_res_contribs.get("daytime_recovery"),
+                      "stress":latest_res_contribs.get("stress")}
+        },
+        "workouts":{
+            "active_minutes":workout_min_series,"calories":workout_cal_series,
+            "active_days":workout_active_days,"activity_counts":activity_counts,
+            "recent":recent_workouts,
+            "total_active_days":sum(workout_active_days),
+            "total_active_minutes":sum(workout_min_series),
+        },
         "vitals":{
             "spo2_avg":spo2_avg,"spo2_bdi":spo2_bdi,
             "stress_high":stress_high,"recovery_high":recovery_high,"stress_summary":stress_summary,
@@ -499,7 +598,7 @@ def generate_demo_data():
 
     # Correlations (realistic)
     corrs = {"steps_deep": 0.41, "sleep_ready": 0.63, "cal_deep": 0.38,
-             "hrv_sleep": 0.55, "temp_sleep": -0.29, "rest_ready": 0.48}
+             "hrv_sleep": 0.55, "temp_sleep": -0.29, "rest_ready": 0.48, "workout_ready": 0.34}
 
     # Forecast
     forecast = []
@@ -616,9 +715,50 @@ def generate_demo_data():
 
     heatmap = [{"date":d,"score":s} for d,s in zip(days,ready_scores)]
 
+    # Demo resilience series
+    RES_LEVELS = ["limited","adequate","solid","strong","exceptional"]
+    res_level_series = []
+    for i in range(60):
+        rough = 28 <= (60-i) <= 42
+        level = rng.choice(["adequate","solid"] if rough else ["solid","solid","strong"])
+        res_level_series.append(level)
+    RES_SCORE = {"limited":25,"adequate":45,"solid":65,"strong":80,"exceptional":95}
+    res_numeric  = [RES_SCORE.get(l) for l in res_level_series]
+    res_sleep_r  = [round(rng.gauss(52 if rough else 60, 5), 1) for rough in [28<=(60-i)<=42 for i in range(60)]]
+    res_day_r    = [round(rng.gauss(44 if rough else 51, 5), 1) for rough in [28<=(60-i)<=42 for i in range(60)]]
+    res_stress_c = [round(rng.gauss(58 if rough else 67, 6), 1) for rough in [28<=(60-i)<=42 for i in range(60)]]
+
+    # Demo workouts (≈4 per week, mix of activities)
+    ACTIVITIES = ["walking","walking","walking","strengthTraining","cycling","basketball","yardwork","other"]
+    workout_min_series = []
+    workout_cal_series = []
+    workout_active_days = []
+    recent_workouts = []
+    activity_counts = {}
+    for i, d in enumerate(days):
+        if rng.random() < 0.55:
+            act = rng.choice(ACTIVITIES)
+            dur = round(rng.gauss(35, 12))
+            cal = round(dur * rng.gauss(6, 1.5))
+            workout_min_series.append(dur)
+            workout_cal_series.append(cal)
+            workout_active_days.append(1)
+            activity_counts[act] = activity_counts.get(act, 0) + 1
+            if i >= 39:  # last 21 days
+                recent_workouts.append({"day":d,"activity":act,"intensity":"moderate",
+                                         "duration_min":dur,"calories":cal,"start_time":d+"T09:00"})
+        else:
+            workout_min_series.append(0)
+            workout_cal_series.append(0)
+            workout_active_days.append(0)
+    recent_workouts = list(reversed(recent_workouts))[:15]
+    activity_counts = dict(sorted(activity_counts.items(), key=lambda x: -x[1]))
+
     return {
         "generated": str(today), "is_demo": True,
         "user": {"first_name": "Demo"},
+        "ring": {"model":"Ring 4","color":"Stealth Black","size":9,"firmware":"2.10.4","since":"2025-12-25"},
+        "sleep_recommendation": "Go to bed 30–60 min earlier tonight",
         "days": days,
         "scores": {"sleep":sleep_scores,"ready":ready_scores,"activity":act_scores,
                    "steps":steps_series,"calories":calories,"deep":deep_series,"rem":rem_series,
@@ -660,6 +800,19 @@ def generate_demo_data():
                 "stress_summary": "normal",
                 "cardio_age": 32, "vo2_max": 44.2
             }
+        },
+        "resilience": {
+            "levels": res_level_series, "numeric": res_numeric,
+            "sleep_recovery": res_sleep_r, "daytime_recovery": res_day_r, "stress": res_stress_c,
+            "latest": {"level": res_level_series[-1], "sleep_recovery": res_sleep_r[-1],
+                       "daytime_recovery": res_day_r[-1], "stress": res_stress_c[-1]}
+        },
+        "workouts": {
+            "active_minutes": workout_min_series, "calories": workout_cal_series,
+            "active_days": workout_active_days, "activity_counts": activity_counts,
+            "recent": recent_workouts,
+            "total_active_days": sum(workout_active_days),
+            "total_active_minutes": sum(workout_min_series),
         },
     }
 
@@ -706,7 +859,7 @@ def oauth_authorize():
         "response_type": "code",
         "client_id": client_id,
         "redirect_uri": redirect_uri,
-        "scope": "email personal daily heartrate spo2Daily",
+        "scope": "email personal daily heartrate spo2Daily workout",
     })
     return redirect(f"https://cloud.ouraring.com/oauth/authorize?{params}")
 

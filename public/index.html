@@ -195,6 +195,35 @@ main{max-width:1400px;margin:0 auto;padding:24px 28px}
 
 canvas{display:block}
 
+/* Ring info card */
+.ring-card{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ring-card-left{display:flex;align-items:center;gap:14px}
+.ring-emoji{font-size:28px;line-height:1}
+.ring-model{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.ring-details{font-size:12px;color:var(--muted);margin-top:3px}
+.ring-details span{margin-right:12px}
+.ring-live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);font-weight:600}
+
+/* Resilience badge */
+.res-badge{display:inline-block;font-size:13px;font-weight:700;padding:3px 12px;border-radius:20px;text-transform:capitalize}
+.res-contrib-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:11px}
+.res-contrib-label{color:var(--muted);width:110px;flex-shrink:0}
+.res-contrib-bar-wrap{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.res-contrib-bar{height:100%;border-radius:2px;background:var(--accent)}
+.res-contrib-val{width:28px;text-align:right;font-weight:700;color:var(--text)}
+
+/* Workout cards */
+.workout-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.workout-row:last-child{border-bottom:none}
+.workout-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.workout-info{flex:1}
+.workout-name{font-weight:600;text-transform:capitalize}
+.workout-meta{font-size:11px;color:var(--muted);margin-top:1px}
+.workout-dur{font-weight:700;color:var(--accent);font-size:13px;white-space:nowrap}
+
+/* Sleep rec banner in tonight card */
+.sleep-rec-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px}
+
 /* ── Footer ─────────────────────────────────────────────────────────────────── */
 footer{background:var(--surface);border-top:1px solid var(--border);padding:20px 28px;text-align:center;margin-top:40px}
 .footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
@@ -503,10 +532,26 @@ function heatmapColor(s){
 // ── RENDER ───────────────────────────────────────────────────────────────────
 let globalData=null;
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function resLevelColor(level){
+  return {limited:'#ef4444',adequate:'#f59e0b',solid:'#3b82f6',strong:'#22c55e',exceptional:'#a855f7'}[level]||'#6b7280';
+}
+function resLevelScore(level){
+  return {limited:25,adequate:45,solid:65,strong:80,exceptional:95}[level]||0;
+}
+function workoutIcon(act){
+  const m={walking:'🚶',running:'🏃',cycling:'🚴',swimming:'🏊',strengthTraining:'🏋️',
+           basketball:'🏀',soccer:'⚽',yoga:'🧘',elliptical:'⭕',houseWork:'🏠',yardwork:'🌱',other:'⚡'};
+  return m[act]||'⚡';
+}
+function fmtActivity(act){
+  return act.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase()).trim();
+}
+
 function render(d){
   destroyAll();
   globalData=d;
-  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,checkin_insights,forecast,anomalies,sleep_debt,debt_log,heatmap}=d;
+  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,checkin_insights,forecast,anomalies,sleep_debt,debt_log,heatmap,ring,sleep_recommendation,resilience,workouts}=d;
   const N30=30;
   const labels30=shortDates(days,N30);
   const allLabels=days.map(shortDate);
@@ -519,8 +564,29 @@ function render(d){
   }
 
   // ── TODAY PAGE ─────────────────────────────────────────────────────────────
+  const resL = resilience?.latest || {};
+  const resLevel = resL.level || '';
+  const resColor = resLevelColor(resLevel);
+  const resScore = resLevelScore(resLevel);
+  const ringModel = ring?.model || 'Oura Ring';
+  const ringSince = ring?.since ? new Date(ring.since+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+
   document.getElementById('today').innerHTML=`
-  <div class="g3">
+  <div class="ring-card">
+    <div class="ring-card-left">
+      <div class="ring-emoji">💍</div>
+      <div>
+        <div class="ring-model">Oura ${ringModel}${ring?.color?' · '+ring.color:''}</div>
+        <div class="ring-details">
+          ${ring?.size?`<span>Size ${ring.size}</span>`:''}
+          ${ring?.firmware?`<span>FW ${ring.firmware}</span>`:''}
+          ${ringSince?`<span>Since ${ringSince}</span>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="ring-live"><div class="dot" style="width:7px;height:7px"></div> Live sync</div>
+  </div>
+  <div class="g4">
     <div class="card score-card">
       <div class="card-title">Sleep Score</div>
       <div class="score-ring"><canvas id="ringSleep"></canvas><div class="score-val" style="color:${scoreColor(latest.sleep)}">${latest.sleep??'—'}</div></div>
@@ -541,6 +607,17 @@ function render(d){
       <div class="score-label">${scoreEmoji(latest.activity)}</div>
       <div class="score-sub">30-day avg: ${avgs.activity??'—'}</div>
       <div class="score-trend">${trendStr(scores.activity)}</div>
+    </div>
+    <div class="card score-card">
+      <div class="card-title">Resilience</div>
+      <div class="score-ring"><canvas id="ringRes"></canvas><div class="score-val" style="color:${resColor};font-size:${resLevel?'20':'28'}px">${resLevel?resScore:'—'}</div></div>
+      <div style="margin:4px 0"><span class="res-badge" style="background:${resColor}22;color:${resColor}">${resLevel||'No data'}</span></div>
+      ${resLevel?`
+      <div style="margin-top:10px">
+        <div class="res-contrib-row"><span class="res-contrib-label">Sleep recovery</span><div class="res-contrib-bar-wrap"><div class="res-contrib-bar" style="width:${resL.sleep_recovery||0}%;background:${resColor}"></div></div><span class="res-contrib-val">${resL.sleep_recovery!=null?Math.round(resL.sleep_recovery):'—'}</span></div>
+        <div class="res-contrib-row"><span class="res-contrib-label">Daytime recovery</span><div class="res-contrib-bar-wrap"><div class="res-contrib-bar" style="width:${resL.daytime_recovery||0}%;background:${resColor}"></div></div><span class="res-contrib-val">${resL.daytime_recovery!=null?Math.round(resL.daytime_recovery):'—'}</span></div>
+        <div class="res-contrib-row"><span class="res-contrib-label">Stress</span><div class="res-contrib-bar-wrap"><div class="res-contrib-bar" style="width:${resL.stress||0}%;background:${resColor}"></div></div><span class="res-contrib-val">${resL.stress!=null?Math.round(resL.stress):'—'}</span></div>
+      </div>`:''}
     </div>
   </div>
   <div class="g4">
@@ -569,7 +646,7 @@ function render(d){
     </div>
     <div class="card"><div class="card-title">Sleep Contributors</div><div style="height:220px"><canvas id="chartContrib"></canvas></div></div>
   </div>
-  ${tonightCardHTML(d.tonight_card)}
+  ${tonightCardHTML({...d.tonight_card, sleep_recommendation: sleep_recommendation||''})}
 
   <div class="g2">
     <div class="card">
@@ -586,6 +663,7 @@ function render(d){
   charts.ringSleep    = makeRing('ringSleep',    latest.sleep,    scoreColor(latest.sleep));
   charts.ringReady    = makeRing('ringReady',    latest.ready,    scoreColor(latest.ready));
   charts.ringActivity = makeRing('ringActivity', latest.activity, scoreColor(latest.activity));
+  if (resLevel) charts.ringRes = makeRing('ringRes', resScore, resColor);
 
   charts.trends = makeLine('chartTrends', labels30, [
     {label:'Sleep',    data:scores.sleep.slice(-N30),    borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',fill:true},
@@ -669,6 +747,36 @@ function render(d){
   <div class="full card">
     <div class="card-title">Sleep Debt Log (30 days, target 8h)</div>
     <div style="height:160px"><canvas id="chartDebt"></canvas></div>
+  </div>
+
+  <div class="full card">
+    <div class="card-title">🏋️ Workout Activity <span class="badge live">60 days</span></div>
+    <div style="height:150px"><canvas id="chartWorkoutMin"></canvas></div>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted)">
+      ${workouts?.total_active_days||0} active days · ${workouts?.total_active_minutes?.toLocaleString()||0} total active minutes tracked
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Activity Breakdown</div>
+      ${workouts?.activity_counts && Object.keys(workouts.activity_counts).length ?
+        `<div style="height:180px"><canvas id="chartActivityType"></canvas></div>` :
+        `<div style="color:var(--muted);font-size:13px;padding:20px 0">No workout data in range.</div>`}
+    </div>
+    <div class="card">
+      <div class="card-title">Recent Workouts <span style="font-size:11px;color:var(--muted)">(last 21 days)</span></div>
+      <div style="max-height:240px;overflow-y:auto">
+        ${(workouts?.recent||[]).length ? (workouts.recent||[]).map(w=>`
+        <div class="workout-row">
+          <div class="workout-icon">${workoutIcon(w.activity)}</div>
+          <div class="workout-info">
+            <div class="workout-name">${fmtActivity(w.activity)}</div>
+            <div class="workout-meta">${w.day} · ${w.intensity}</div>
+          </div>
+          <div class="workout-dur">${w.duration_min}m${w.calories?' · '+w.calories+' kcal':''}</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:20px 0">No recent workouts logged.</div>'}
+      </div>
+    </div>
   </div>`;
 
   charts.hrv   = makeLine('chartHRV',   allLabels, [{label:'HRV Balance',data:scores.hrv,borderColor:'#a855f7',backgroundColor:'rgba(168,85,247,.08)',fill:true}],{legend:false,yMin:50,yMax:100,maxTicks:12});
@@ -682,6 +790,30 @@ function render(d){
     {label:'Cumulative debt (hrs)',data:debtVals,borderColor:debtVals[debtVals.length-1]>0?'#ef4444':'#22c55e',backgroundColor:debtVals[debtVals.length-1]>0?'rgba(239,68,68,.08)':'rgba(34,197,94,.08)',fill:true}
   ],{legend:false,maxTicks:10});
 
+  // Workout charts
+  if (workouts && document.getElementById('chartWorkoutMin')) {
+    const wMin = (workouts.active_minutes||[]).slice(-N30);
+    const wLabels = labels30;
+    charts.workoutMin = makeBar('chartWorkoutMin', wLabels, [{
+      label:'Active minutes',
+      data: wMin,
+      backgroundColor: wMin.map(v => v>=45?'rgba(99,102,241,.75)':v>0?'rgba(99,102,241,.4)':'rgba(99,102,241,.1)'),
+    }],{legend:false});
+  }
+  if (workouts?.activity_counts && document.getElementById('chartActivityType')) {
+    const ac = workouts.activity_counts;
+    const actLabels = Object.keys(ac).map(fmtActivity);
+    const actData   = Object.values(ac);
+    const actColors = ['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#a855f7','#f97316','#3b82f6'];
+    charts.actType = new Chart(document.getElementById('chartActivityType'),{
+      type:'doughnut',
+      data:{labels:actLabels,datasets:[{data:actData,backgroundColor:actColors.slice(0,actLabels.length),borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+               plugins:{legend:{position:'right',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:10,font:{size:11}}},
+                        tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8}}}
+    });
+  }
+
   // ── ANOMALIES PAGE ─────────────────────────────────────────────────────────
   document.getElementById('anomalies').innerHTML=`
   <div class="full card" style="margin-bottom:20px">
@@ -694,7 +826,7 @@ function render(d){
   renderSleepScience(d.hypnogram, d.deep_decoder);
 
   // ── VITALS PAGE ───────────────────────────────────────────────────────────
-  renderVitals(d.vitals, d.days, d.user);
+  renderVitals(d.vitals, d.days, d.user, d.resilience);
 
   // ── INSIGHTS PAGE ──────────────────────────────────────────────────────────
   document.getElementById('insights').innerHTML=`
@@ -794,12 +926,13 @@ function trainingDays(forecast){
 
 function renderCorrelations(corrs){
   const items=[
-    {label:'Steps → next night deep sleep',   val:corrs.steps_deep},
-    {label:'Sleep score → next day readiness', val:corrs.sleep_ready},
-    {label:'Active calories → deep sleep',     val:corrs.cal_deep},
-    {label:'HRV balance → sleep quality',      val:corrs.hrv_sleep},
-    {label:'Temp deviation → sleep score',     val:corrs.temp_sleep},
-    {label:'Restfulness → readiness',          val:corrs.rest_ready},
+    {label:'Steps → next night deep sleep',      val:corrs.steps_deep},
+    {label:'Sleep score → next day readiness',   val:corrs.sleep_ready},
+    {label:'Active calories → deep sleep',       val:corrs.cal_deep},
+    {label:'HRV balance → sleep quality',        val:corrs.hrv_sleep},
+    {label:'Temp deviation → sleep score',       val:corrs.temp_sleep},
+    {label:'Restfulness → readiness',            val:corrs.rest_ready},
+    {label:'Workout day → next day readiness',   val:corrs.workout_ready},
   ];
   return items.map(item=>{
     const r=item.val;
@@ -825,12 +958,14 @@ function tonightCardHTML(card) {
       <div class="tonight-action-body">${a.body}</div>
     </div>`).join('');
 
+  const recHTML = card.sleep_recommendation ? `<div class="sleep-rec-pill">🛏 ${card.sleep_recommendation}</div>` : '';
   return `
   <div class="tonight-card ${card.verdict || 'ok'}">
     <div class="tonight-header">
       <div class="tonight-title">🌙 Tonight's Sleep Plan</div>
       <div class="tonight-verdict" style="color:${card.verdict_color}">${card.verdict_msg}</div>
     </div>
+    ${recHTML}
     <div class="tonight-actions">${actionsHTML}</div>
   </div>`;
 }
@@ -1346,9 +1481,13 @@ function changeToken() { switchToken(); }
 })();
 
 // ── Vitals ────────────────────────────────────────────────────────────────────
-function renderVitals(v, days, user) {
+function renderVitals(v, days, user, res) {
   if (!v) { document.getElementById('vitals').innerHTML='<div class="loading"><div style="color:var(--muted)">No vitals data available.</div></div>'; return; }
   const l = v.latest || {};
+  const rl = res?.latest || {};
+  const resLvl = rl.level || '';
+  const resClr = resLevelColor(resLvl);
+  const resScoreV = resLevelScore(resLvl);
   const name = (user && user.first_name) ? user.first_name + "'s" : "Your";
 
   // SpO2
@@ -1382,6 +1521,35 @@ function renderVitals(v, days, user) {
   const recoveryPoints = days.map((d,i) => v.recovery_high[i]||0);
 
   document.getElementById('vitals').innerHTML=`
+  <div class="g2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">🧬 Resilience</div>
+      ${resLvl ? `
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">
+        <div style="position:relative;width:80px;height:80px;flex-shrink:0">
+          <canvas id="resRingVitals"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px;font-weight:800;color:${resClr}">${resScoreV}</div>
+        </div>
+        <div>
+          <span class="res-badge" style="background:${resClr}22;color:${resClr};font-size:15px">${resLvl.charAt(0).toUpperCase()+resLvl.slice(1)}</span>
+          <div style="margin-top:8px;font-size:12px;color:var(--muted);line-height:1.8">
+            How well your body is bouncing back from daily stress — combining sleep quality, daytime recovery, and physiological stress.
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:4px">
+        <div class="res-contrib-row" style="margin-bottom:8px"><span class="res-contrib-label" style="font-size:12px;width:140px">Sleep Recovery</span><div class="res-contrib-bar-wrap"><div class="res-contrib-bar" style="width:${rl.sleep_recovery||0}%;background:${resClr}"></div></div><span class="res-contrib-val">${rl.sleep_recovery!=null?rl.sleep_recovery.toFixed(1):'—'}</span></div>
+        <div class="res-contrib-row" style="margin-bottom:8px"><span class="res-contrib-label" style="font-size:12px;width:140px">Daytime Recovery</span><div class="res-contrib-bar-wrap"><div class="res-contrib-bar" style="width:${rl.daytime_recovery||0}%;background:${resClr}"></div></div><span class="res-contrib-val">${rl.daytime_recovery!=null?rl.daytime_recovery.toFixed(1):'—'}</span></div>
+        <div class="res-contrib-row"><span class="res-contrib-label" style="font-size:12px;width:140px">Stress Management</span><div class="res-contrib-bar-wrap"><div class="res-contrib-bar" style="width:${rl.stress||0}%;background:${resClr}"></div></div><span class="res-contrib-val">${rl.stress!=null?rl.stress.toFixed(1):'—'}</span></div>
+      </div>` : '<div style="color:var(--muted);font-size:13px;padding:10px 0">Resilience data requires at least 2 weeks of ring data.</div>'}
+    </div>
+    <div class="card">
+      <div class="card-title">📈 Resilience Trend — 60 Days</div>
+      ${res?.numeric?.some(v=>v!=null) ? `<canvas id="chartResilience" height="180"></canvas>` :
+        `<div style="color:var(--muted);font-size:13px;padding:20px 0">Not enough resilience data yet.</div>`}
+    </div>
+  </div>
+
   <div class="g4" style="margin-bottom:20px">
     <div class="card score-card">
       <div class="card-title">🫁 Blood Oxygen (SpO2)</div>
@@ -1445,6 +1613,30 @@ function renderVitals(v, days, user) {
 
   // Render charts
   requestAnimationFrame(() => {
+    // Resilience ring in vitals
+    if (resLvl && document.getElementById('resRingVitals')) {
+      new Chart(document.getElementById('resRingVitals'),{type:'doughnut',
+        data:{datasets:[{data:[resScoreV,100-resScoreV],backgroundColor:[resClr,'#1c202e'],borderWidth:0,borderRadius:4}]},
+        options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:600}}
+      });
+    }
+    // Resilience trend
+    if (res?.numeric?.some(v=>v!=null) && document.getElementById('chartResilience')) {
+      const LEVEL_LABELS = {25:'Limited',45:'Adequate',65:'Solid',80:'Strong',95:'Exceptional'};
+      new Chart(document.getElementById('chartResilience'),{
+        type:'line',
+        data:{labels:days.map(d=>d.slice(5)),
+              datasets:[{data:res.numeric,borderColor:resClr,backgroundColor:resClr.replace(')',',0.1)').replace('rgb','rgba'),
+                         borderWidth:2,pointRadius:0,tension:.3,fill:true,spanGaps:true}]},
+        options:{responsive:true,plugins:{legend:{display:false},
+          tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8,
+            callbacks:{label:ctx=>{const lvl=res.levels[ctx.dataIndex];return lvl?lvl.charAt(0).toUpperCase()+lvl.slice(1):'No data'}}}},
+          scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,maxRotation:0,font:{size:10}}},
+                  y:{min:0,max:100,grid:{color:'rgba(255,255,255,.05)'},ticks:{callback:v=>LEVEL_LABELS[v]||'',font:{size:10}},
+                     afterBuildTicks:axis=>{axis.ticks=Object.keys(LEVEL_LABELS).map(v=>({value:+v}));}}}
+        }
+      });
+    }
     if (spo2Points.length) {
       new Chart(document.getElementById('spo2Chart'), {
         type:'line',
