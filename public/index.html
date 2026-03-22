@@ -20,12 +20,37 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 header h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
 header h1 span{color:var(--accent)}
-.header-right{display:flex;align-items:center;gap:12px}
+.header-right{display:flex;align-items:center;gap:10px}
 .date-badge{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 12px;font-size:12px;color:var(--muted)}
-.refresh-btn{background:var(--accent);border:none;border-radius:8px;color:#fff;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
-.refresh-btn:hover{opacity:.85}
+.refresh-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* Account menu */
+.acct-menu-wrap{position:relative}
+.acct-avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;letter-spacing:0}
+.acct-avatar:hover{opacity:.85}
+.acct-dropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--border);border-radius:12px;min-width:210px;box-shadow:0 8px 32px rgba(0,0,0,.35);z-index:200;overflow:hidden}
+.acct-dropdown.open{display:block}
+.acct-dropdown-header{padding:12px 16px 10px;border-bottom:1px solid var(--border)}
+.acct-dropdown-name{font-size:13px;font-weight:700;color:var(--text)}
+.acct-dropdown-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.acct-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:var(--text);cursor:pointer;transition:background .12s;border:none;background:none;width:100%;text-align:left}
+.acct-item:hover{background:var(--surface2)}
+.acct-item .acct-icon{font-size:15px;width:20px;text-align:center}
+.acct-divider{height:1px;background:var(--border);margin:4px 0}
+.acct-item.danger{color:#f87171}
+.acct-item.danger:hover{background:rgba(248,113,113,.08)}
+/* Confirm modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:380px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,.4)}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:8px}
+.modal-body{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.modal-cancel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.modal-confirm{background:#f87171;border:none;border-radius:8px;color:#fff;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.modal-confirm:hover{opacity:.85}
 
 /* Nav tabs */
 nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:4px}
@@ -214,8 +239,6 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
 .setup-privacy{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6}
 .token-link{color:var(--accent);text-decoration:none}
 .token-link:hover{text-decoration:underline}
-.change-token-btn{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:5px 12px;font-size:12px;cursor:pointer;transition:all .15s}
-.change-token-btn:hover{border-color:var(--accent);color:var(--accent)}
 .setup-or{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--muted);font-size:12px}
 .setup-or::before,.setup-or::after{content:'';flex:1;height:1px;background:var(--border)}
 .demo-btn{width:100%;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);padding:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
@@ -286,10 +309,40 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
   <div class="header-right">
     <div class="dot"></div>
     <div class="date-badge" id="dateLabel">Loading…</div>
-    <button class="change-token-btn" onclick="changeToken()" title="Change Oura token">⚙ Token</button>
-    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+    <button class="refresh-btn" onclick="loadData()" title="Refresh data">↻ Refresh</button>
+    <div class="acct-menu-wrap" id="acctMenuWrap">
+      <button class="acct-avatar" id="acctAvatar" onclick="toggleAcctMenu()" title="Account">👤</button>
+      <div class="acct-dropdown" id="acctDropdown">
+        <div class="acct-dropdown-header">
+          <div class="acct-dropdown-name" id="acctName">My Account</div>
+          <div class="acct-dropdown-sub">Oura Health Dashboard</div>
+        </div>
+        <button class="acct-item" onclick="refreshData()">
+          <span class="acct-icon">↻</span> Refresh Data
+        </button>
+        <button class="acct-item" onclick="switchToken()">
+          <span class="acct-icon">🔑</span> Switch Token
+        </button>
+        <div class="acct-divider"></div>
+        <button class="acct-item danger" onclick="confirmSignOut()">
+          <span class="acct-icon">🚪</span> Sign Out & Clear Data
+        </button>
+      </div>
+    </div>
   </div>
 </header>
+
+<!-- Sign-out confirm modal -->
+<div class="modal-overlay" id="signOutModal">
+  <div class="modal-box">
+    <div class="modal-title">Sign out & clear data?</div>
+    <div class="modal-body">Your Oura token will be removed from this browser. No data is stored on our servers — this simply disconnects this device.<br><br>You can reconnect any time with your Personal Access Token.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </div>
+</div>
 
 <div class="demo-banner" id="demoBanner">
   <span>👀 Demo Mode</span> — This is fictitious data. <a class="token-link" href="#" onclick="exitDemo()">Connect your Oura Ring</a> to see your real health data.
@@ -1161,12 +1214,54 @@ function exitDemo() {
   location.reload();
 }
 
-function changeToken() {
-  if (!confirm('Disconnect your Oura account? You\'ll need to reconnect.')) return;
+// ── Account menu ──────────────────────────────────────────────────────────────
+function toggleAcctMenu() {
+  const dd = document.getElementById('acctDropdown');
+  dd.classList.toggle('open');
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('acctMenuWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('acctDropdown').classList.remove('open');
+  }
+});
+
+function refreshData() {
+  document.getElementById('acctDropdown').classList.remove('open');
+  loadData();
+}
+
+function switchToken() {
+  document.getElementById('acctDropdown').classList.remove('open');
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(DEMO_KEY);
   location.reload();
 }
+
+function confirmSignOut() {
+  document.getElementById('acctDropdown').classList.remove('open');
+  document.getElementById('signOutModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('signOutModal').classList.remove('open');
+}
+
+function doSignOut() {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(DEMO_KEY);
+  location.reload();
+}
+
+// Close modal on overlay click
+document.getElementById('signOutModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Legacy alias
+function changeToken() { switchToken(); }
 
 // Show setup if no token and not demo; handle OAuth callback
 (async function() {
@@ -1344,8 +1439,11 @@ async function loadData(){
     }
     const d = await res.json();
     if (d.user && d.user.first_name && !isDemo()) {
-      document.getElementById('userName').textContent = d.user.first_name + "'s";
-      document.title = d.user.first_name + "'s Health Dashboard";
+      const fn = d.user.first_name;
+      document.getElementById('userName').textContent = fn + "'s";
+      document.title = fn + "'s Health Dashboard";
+      document.getElementById('acctName').textContent = fn;
+      document.getElementById('acctAvatar').textContent = fn.charAt(0).toUpperCase();
     }
     render(d);
   } catch(e) {
