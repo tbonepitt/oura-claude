@@ -14,6 +14,16 @@ app = Flask(__name__)
 
 BASE = "https://api.ouraring.com/v2/usercollection"
 
+# ── Security headers on every API response ──────────────────────────────────
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options']        = 'DENY'
+    response.headers['Referrer-Policy']        = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy']     = 'geolocation=(), microphone=(), camera=()'
+    response.headers['Cache-Control']          = 'no-store'
+    return response
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def fetch(ep, start, end, token):
