@@ -361,7 +361,6 @@ def build_data(token):
     workout_list   = workout_data   if isinstance(workout_data,   list) else []
     ring_info      = ring_config[0] if isinstance(ring_config, list) and ring_config else {}
 
-    activity_map={a["day"]:a for a in activity}
     s_map={d["day"]:d for d in sleep}; r_map={d["day"]:d for d in ready}; a_map={d["day"]:d for d in activity}
     days=sorted(set(s_map)&set(r_map)&set(a_map))
 
@@ -520,7 +519,8 @@ def build_data(token):
     temp_norm_sleep = mean([s for t,s in zip(temp_series,sleep_scores) if t is not None and t< 0.5 and s is not None])
     temp_diff       = round(temp_elev_sleep - temp_norm_sleep,1) if (temp_elev_sleep and temp_norm_sleep) else None
 
-    user_age  = user_info.get("age") if isinstance(user_info,dict) else None
+    raw_age = user_info.get("age") if isinstance(user_info, dict) else None
+    user_age = int(raw_age) if raw_age is not None else None
     cardio_gap = round(user_age - latest_cardio) if (user_age and latest_cardio) else None
 
     stress_streak = 0
@@ -596,7 +596,7 @@ def build_data(token):
     resting_hr_timeline=[{"t":h["timestamp"][:16],"bpm":h["bpm"]} for h in hr_data if h.get("source")=="rest" and h.get("bpm")]
 
     hypnogram=parse_hypnogram(detail[-1] if detail else {})
-    deep_decoder=build_deep_sleep_decoder(detail,activity_map)
+    deep_decoder=build_deep_sleep_decoder(detail,a_map)
     tonight_card=build_tonight_card(latest_act,latest_ready,latest_sleep,deep_decoder,
                                     sleep_debt,act_scores,ready_scores,sleep_scores)
     heatmap=[{"date":d,"score":r_map.get(d,{}).get("score")} for d in days]
@@ -932,8 +932,8 @@ def validate_endpoint():
         if isinstance(info, dict) and ("first_name" in info or "id" in info):
             return jsonify({"valid": True, "first_name": info.get("first_name", "")})
         return jsonify({"valid": False, "error": "Token rejected by Oura API"}), 401
-    except Exception as e:
-        return jsonify({"valid": False, "error": str(e)}), 401
+    except Exception:
+        return jsonify({"valid": False, "error": "validation_failed"}), 401
 
 @app.route("/api/demo")
 def demo_endpoint():
@@ -942,14 +942,14 @@ def demo_endpoint():
 
 @app.route("/api/data")
 def data_endpoint():
-    token = request.headers.get("X-Oura-Token", "").strip() or os.environ.get("OURA_TOKEN", "")
+    token = request.headers.get("X-Oura-Token", "").strip()
     if not token:
         return jsonify({"error": "missing_token",
                         "message": "Provide your Oura token via X-Oura-Token header."}), 401
     try:
         return jsonify(build_data(token))
-    except Exception as e:
-        return jsonify({"error": "fetch_failed", "message": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "data_fetch_failed"}), 500
 
 @app.route("/api/oauth/authorize")
 def oauth_authorize():
@@ -992,17 +992,13 @@ def oauth_token_endpoint():
             body = json.loads(r.read())
         access_token = body.get("access_token", "")
         if not access_token:
-            return jsonify({"error": "No access token returned", "detail": body}), 400
+            return jsonify({"error": "oauth_failed"}), 400
         try:
             info       = fetch("personal_info", None, None, access_token)
             first_name = info.get("first_name", "") if isinstance(info, dict) else ""
         except Exception:
             first_name = ""
         return jsonify({"access_token": access_token, "first_name": first_name})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception:
+        return jsonify({"error": "token_exchange_failed"}), 400
 
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def catch_all(path):
-    return app.send_static_file("index.html")

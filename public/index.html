@@ -203,59 +203,6 @@ main{max-width:1400px;margin:0 auto;padding:24px 28px}
 
 canvas{display:block}
 
-/* Check-in floating button */
-.checkin-fab{position:fixed;bottom:28px;right:28px;z-index:500;background:var(--accent);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:700;padding:12px 20px;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.4);transition:all .2s;display:flex;align-items:center;gap:8px;letter-spacing:-.2px}
-.checkin-fab:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(99,102,241,.55)}
-.checkin-fab.done{background:var(--surface);border:1px solid var(--green);color:var(--green);box-shadow:0 4px 16px rgba(34,197,94,.2)}
-
-/* Check-in modal */
-.checkin-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:480px;width:94%;box-shadow:0 20px 60px rgba(0,0,0,.5);max-height:90vh;overflow-y:auto}
-.checkin-subtitle{font-size:12px;color:var(--muted);margin-bottom:22px;line-height:1.5}
-.checkin-progress{background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
-.checkin-progress-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-.checkin-progress-bar{height:100%;border-radius:3px;background:var(--accent);transition:width .4s}
-.checkin-progress-label{font-size:11px;color:var(--muted);white-space:nowrap}
-.checkin-factors{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
-.checkin-toggle{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .15s;text-align:left;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--muted);user-select:none}
-.checkin-toggle:hover{border-color:var(--accent);color:var(--text)}
-.checkin-toggle.active{background:rgba(99,102,241,.12);border-color:var(--accent);color:var(--text)}
-.checkin-toggle .ct-icon{font-size:18px;flex-shrink:0}
-.checkin-toggle .ct-label{flex:1;line-height:1.3}
-.checkin-toggle .ct-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s}
-.checkin-toggle.active .ct-check{background:var(--accent);border-color:var(--accent);color:#fff}
-.checkin-save{width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;padding:14px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;letter-spacing:-.2px}
-.checkin-save:hover{opacity:.85}
-.checkin-done-state{text-align:center;padding:20px 0}
-.checkin-done-icon{font-size:48px;margin-bottom:12px}
-.checkin-done-text{font-size:15px;font-weight:700;margin-bottom:6px}
-.checkin-done-sub{font-size:13px;color:var(--muted)}
-
-/* Tonight CTA for check-in */
-.tonight-checkin-cta{display:flex;align-items:center;justify-content:space-between;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.18);border-radius:10px;padding:10px 14px;margin-top:12px;cursor:pointer;transition:all .15s}
-.tonight-checkin-cta:hover{background:rgba(99,102,241,.1);border-color:var(--accent)}
-.tonight-checkin-cta span{font-size:12px;font-weight:600;color:var(--accent)}
-.tonight-checkin-cta .cta-arrow{font-size:14px;color:var(--accent)}
-
-/* Insights checkin panel */
-.ci-progress-wrap{background:var(--surface2);border-radius:12px;padding:16px;margin-bottom:12px}
-.ci-progress-bar-wrap{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:10px 0 8px}
-.ci-progress-bar{height:100%;border-radius:4px;background:var(--accent);transition:width .5s}
-.ci-recent-list{margin-top:14px}
-.ci-recent-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
-.ci-recent-item:last-child{border-bottom:none}
-.ci-recent-date{font-weight:700;color:var(--text);width:70px;flex-shrink:0}
-.ci-tags{display:flex;flex-wrap:wrap;gap:4px}
-.ci-tag{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:10px}
-.ci-factor-card{background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.ci-factor-card:last-child{margin-bottom:0}
-.ci-factor-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
-.ci-factor-icon{font-size:20px;flex-shrink:0}
-.ci-factor-name{font-size:13px;font-weight:700;margin-bottom:2px}
-.ci-factor-avgs{font-size:11px;color:var(--muted)}
-.ci-factor-diff{font-size:13px;font-weight:700;padding:4px 12px;border-radius:8px;white-space:nowrap}
-.ci-factor-diff.pos{background:rgba(34,197,94,.12);color:var(--green)}
-.ci-factor-diff.neg{background:rgba(239,68,68,.12);color:var(--red)}
-.ci-factor-diff.neu{background:rgba(107,114,128,.12);color:var(--muted)}
 
 /* Ring info card */
 .ring-card{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -288,14 +235,13 @@ canvas{display:block}
 .sleep-rec-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px}
 
 /* ── Footer ─────────────────────────────────────────────────────────────────── */
-footer{background:var(--surface);border-top:1px solid var(--border);padding:20px 28px;text-align:center;margin-top:40px}
-.footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
-.footer-brand{font-size:13px;color:var(--muted)}
-.footer-brand a{color:var(--accent);text-decoration:none;font-weight:600}
-.footer-brand a:hover{text-decoration:underline}
-.footer-divider{color:var(--border);font-size:16px}
-.footer-tagline{font-size:12px;color:var(--muted)}
-.footer-oura{font-size:12px;color:var(--muted)}
+footer.site-footer{background:var(--surface);border-top:1px solid var(--border);padding:16px 28px;text-align:center;font-size:11px;color:var(--muted);line-height:2;background:linear-gradient(0deg,rgba(99,102,241,.04),transparent)}
+footer.site-footer a{color:var(--muted);text-decoration:none;transition:color .15s}
+footer.site-footer a:hover{color:var(--accent)}
+footer.site-footer .sep{margin:0 8px;opacity:.3}
+.footer-bot{color:var(--accent);font-weight:700;animation:footerpulse 3s ease-in-out infinite}
+@keyframes footerpulse{0%,100%{opacity:1}50%{opacity:.6}}
+@media(max-width:640px){footer.site-footer .sep{display:none;} footer.site-footer{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px}}
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media(max-width:900px){
@@ -501,29 +447,6 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
   </div>
 </div>
 
-<!-- Evening Check-in Modal -->
-<div class="modal-overlay" id="checkinModal">
-  <div class="checkin-modal-box">
-    <div class="modal-title">🌙 Evening Check-in</div>
-    <div class="checkin-subtitle">2 min to log your evening — unlock personalized habit insights after 14 days</div>
-    <div class="checkin-progress" id="checkinProgressWrap">
-      <div class="checkin-progress-bar-wrap"><div class="checkin-progress-bar" id="checkinProgressBar" style="width:0%"></div></div>
-      <div class="checkin-progress-label" id="checkinProgressLabel">Day 0 of 14</div>
-    </div>
-    <div id="checkinBody">
-      <div class="checkin-factors" id="checkinFactors">
-        <button class="checkin-toggle" data-key="alcohol" onclick="toggleFactor(this)"><span class="ct-icon">🍷</span><span class="ct-label">Alcohol</span><span class="ct-check">✓</span></button>
-        <button class="checkin-toggle" data-key="caffeine" onclick="toggleFactor(this)"><span class="ct-icon">☕</span><span class="ct-label">Caffeine after 2pm</span><span class="ct-check">✓</span></button>
-        <button class="checkin-toggle" data-key="late_meal" onclick="toggleFactor(this)"><span class="ct-icon">🍽️</span><span class="ct-label">Late meal (within 3h of bed)</span><span class="ct-check">✓</span></button>
-        <button class="checkin-toggle" data-key="screens" onclick="toggleFactor(this)"><span class="ct-icon">📱</span><span class="ct-label">Screens in bed</span><span class="ct-check">✓</span></button>
-        <button class="checkin-toggle" data-key="stress" onclick="toggleFactor(this)"><span class="ct-icon">😤</span><span class="ct-label">High stress day</span><span class="ct-check">✓</span></button>
-        <button class="checkin-toggle" data-key="melatonin" onclick="toggleFactor(this)"><span class="ct-icon">💊</span><span class="ct-label">Melatonin / supplements</span><span class="ct-check">✓</span></button>
-        <button class="checkin-toggle" data-key="meditation" onclick="toggleFactor(this)"><span class="ct-icon">🧘</span><span class="ct-label">Meditation / breathing</span><span class="ct-check">✓</span></button>
-      </div>
-      <button class="checkin-save" onclick="saveCheckin()">Save Check-in</button>
-    </div>
-  </div>
-</div>
 
 <div class="demo-banner" id="demoBanner">
   <span>👀 Demo Mode</span> — This is fictitious data. <a class="token-link" href="#" onclick="exitDemo()">Connect your Oura Ring</a> to see your real health data.
@@ -550,23 +473,26 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
   <div id="insights" class="page"></div>
 </main>
 
-<footer>
-  <div class="footer-inner">
-    <div class="footer-brand">
-      Powered by <a href="https://saintlydigital.com" target="_blank" rel="noopener">SaintlyDigital.com</a>
-    </div>
-    <div class="footer-divider">·</div>
-    <div class="footer-tagline">We build smart tools that make your data work for you</div>
-    <div class="footer-divider">·</div>
-    <div class="footer-oura">Data from the Oura API</div>
-  </div>
+<footer class="site-footer">
+  <span class="footer-bot">⚡ Powered by SaintlyBot</span>
+  <span class="sep">·</span>
+  Vibe coded with Claude Code
+  <span class="sep">·</span>
+  <a href="https://saintlydigital.com" target="_blank">saintlydigital.com</a>
+  <span class="sep">·</span>
+  <a href="/privacy">Privacy Policy</a>
+  <span class="sep">·</span>
+  <a href="/terms">Terms &amp; Conditions</a>
+  <span class="sep">·</span>
+  <a href="https://github.com/tbonepitt/oura-claude" target="_blank">GitHub ↗</a>
+  <span class="sep">·</span>
+  Real-time data from the <a href="https://cloud.ouraring.com/v2/docs" target="_blank">Oura API</a>
 </footer>
 
-<!-- Floating check-in button (only shown on Today tab) -->
-<button class="checkin-fab" id="checkinFab" onclick="openCheckinModal()" style="display:none">🌙 Check In</button>
 
 <script>
 // ── Helpers ──────────────────────────────────────────────────────────────────
+function escH(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function scoreColor(s){if(!s)return'#6b7280';if(s>=85)return'#22c55e';if(s>=70)return'#3b82f6';if(s>=60)return'#f59e0b';return'#ef4444'}
 function scoreEmoji(s){if(!s)return'—';if(s>=85)return'💚 Optimal';if(s>=70)return'🟢 Good';if(s>=60)return'🟡 Fair';return'🔴 Poor'}
 function shortDate(d){const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
@@ -606,7 +532,6 @@ document.querySelectorAll('.tab').forEach(tab=>{
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(tab.dataset.page).classList.add('active');
-    updateFabVisibility();
   });
 });
 
@@ -642,9 +567,6 @@ function fmtActivity(act){
 function render(d){
   destroyAll();
   globalData=d;
-  // Show FAB on Today tab
-  const fab=document.getElementById('checkinFab');
-  if(fab){fab.style.display='flex';updateCheckinFab();}
   const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,correlation_insights:ci,checkin_insights,forecast,anomalies,sleep_debt,debt_log,heatmap,ring,sleep_recommendation,resilience,workouts}=d;
   const N30=30;
   const labels30=shortDates(days,N30);
@@ -670,10 +592,10 @@ function render(d){
     <div class="ring-card-left">
       <div class="ring-emoji">💍</div>
       <div>
-        <div class="ring-model">Oura ${ringModel}${ring?.color?' · '+ring.color:''}</div>
+        <div class="ring-model">Oura ${escH(ringModel)}${ring?.color?' · '+escH(ring.color):''}</div>
         <div class="ring-details">
-          ${ring?.size?`<span>Size ${ring.size}</span>`:''}
-          ${ring?.firmware?`<span>FW ${ring.firmware}</span>`:''}
+          ${ring?.size?`<span>Size ${escH(String(ring.size))}</span>`:''}
+          ${ring?.firmware?`<span>FW ${escH(ring.firmware)}</span>`:''}
           ${ringSince?`<span>Since ${ringSince}</span>`:''}
         </div>
       </div>
@@ -923,8 +845,6 @@ function render(d){
   renderVitals(d.vitals, d.days, d.user, d.resilience, ci);
 
   // ── INSIGHTS PAGE ──────────────────────────────────────────────────────────
-  const localCheckins = loadCheckins();
-  const checkinInsightsHTML = renderCheckinInsights(localCheckins, days, scores);
   document.getElementById('insights').innerHTML=`
   <div class="g2">
     <div class="card">
@@ -933,7 +853,7 @@ function render(d){
     </div>
     <div class="card">
       <div class="card-title">📝 Lifestyle Experiment Results</div>
-      ${checkinInsightsHTML}
+      <div style="color:var(--muted);font-size:13px;padding:20px 0;line-height:1.8">Unlock personalized habit insights by connecting additional data sources — <strong style="color:var(--text)">coming soon</strong>.</div>
     </div>
   </div>
   <div class="full card">
@@ -987,7 +907,7 @@ function anomalyCard(a){
   return`<div class="anomaly-card">
     <div class="anomaly-header">
       <div>
-        <div class="anomaly-label">${a.dow}, ${a.date} — ${a.label}</div>
+        <div class="anomaly-label">${escH(a.dow)}, ${a.date} — ${escH(a.label)}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">Score: <strong style="color:${scoreColor(a.score)}">${a.score}</strong> vs your avg of ${a.avg} (dropped ${a.drop} pts)</div>
       </div>
       <div class="anomaly-badge ${a.metric}">${a.metric}</div>
@@ -1104,9 +1024,9 @@ function tonightCardHTML(card, ci) {
     <div class="tonight-action">
       <div class="tonight-action-head">
         <span class="tonight-action-icon">${a.icon}</span>
-        <span class="tonight-action-title">${a.headline}</span>
+        <span class="tonight-action-title">${escH(a.headline)}</span>
       </div>
-      <div class="tonight-action-body">${a.body}</div>
+      <div class="tonight-action-body">${escH(a.body)}</div>
     </div>`).join('');
 
   const recHTML = card.sleep_recommendation ? `<div class="sleep-rec-pill">🛏 ${card.sleep_recommendation}</div>` : '';
@@ -1134,15 +1054,6 @@ function tonightCardHTML(card, ci) {
     </div>`;
   }
 
-  const todayStr = new Date().toISOString().slice(0,10);
-  const checkins = loadCheckins();
-  const checkedInToday = checkins.some(c=>c.date===todayStr);
-  const checkinCTAHTML = checkedInToday ? '' : `
-    <div class="tonight-checkin-cta" onclick="openCheckinModal()">
-      <span>🌙 Haven't checked in today — log your evening habits</span>
-      <span class="cta-arrow">→</span>
-    </div>`;
-
   return `
   <div class="tonight-card ${card.verdict || 'ok'}">
     <div class="tonight-header">
@@ -1152,7 +1063,6 @@ function tonightCardHTML(card, ci) {
     ${recHTML}
     <div class="tonight-actions">${actionsHTML}</div>
     ${stepsHTML}
-    ${checkinCTAHTML}
   </div>`;
 }
 
@@ -1164,14 +1074,14 @@ function renderSleepScience(hyp, dec) {
   const bestNightsHTML = (dec.best_nights || []).map(n => `
     <div class="night-pill">
       <span class="deep" style="color:#22c55e">${n.deep_min}m</span>
-      ${n.day}<br>
+      ${escH(n.day)}<br>
       <span style="color:var(--muted);font-size:11px">${n.steps ? n.steps.toLocaleString()+' steps' : ''} ${n.bed ? '· bed '+n.bed : ''}</span>
     </div>`).join('');
 
   const worstNightsHTML = (dec.worst_nights || []).map(n => `
     <div class="night-pill">
       <span class="deep" style="color:#ef4444">${n.deep_min}m</span>
-      ${n.day}<br>
+      ${escH(n.day)}<br>
       <span style="color:var(--muted);font-size:11px">${n.steps ? n.steps.toLocaleString()+' steps' : ''} ${n.bed ? '· bed '+n.bed : ''}</span>
     </div>`).join('');
 
@@ -1179,11 +1089,11 @@ function renderSleepScience(hyp, dec) {
     <div class="finding-card">
       <div class="finding-header">
         <span class="finding-icon">${f.icon}</span>
-        <span class="finding-title">${f.title}</span>
+        <span class="finding-title">${escH(f.title)}</span>
         <span class="finding-impact ${f.impact}">${f.impact} impact</span>
       </div>
-      <div class="finding-body">${f.body}</div>
-      <div class="finding-action">→ ${f.action}</div>
+      <div class="finding-body">${escH(f.body)}</div>
+      <div class="finding-action">→ ${escH(f.action)}</div>
     </div>`).join('');
 
   document.getElementById('sleep-science').innerHTML = `
@@ -1475,208 +1385,6 @@ function renderSleepScience(hyp, dec) {
   }
 }
 
-// ── Check-in System ──────────────────────────────────────────────────────────
-const CHECKIN_KEY = 'oura_edge_checkins';
-const CHECKIN_FACTORS = [
-  {key:'alcohol',   label:'Alcohol',                icon:'🍷'},
-  {key:'caffeine',  label:'Caffeine after 2pm',     icon:'☕'},
-  {key:'late_meal', label:'Late meal (within 3h)',  icon:'🍽️'},
-  {key:'screens',   label:'Screens in bed',         icon:'📱'},
-  {key:'stress',    label:'High stress day',        icon:'😤'},
-  {key:'melatonin', label:'Melatonin / supplements',icon:'💊'},
-  {key:'meditation',label:'Meditation / breathing', icon:'🧘'},
-];
-
-function loadCheckins(){
-  try { return JSON.parse(localStorage.getItem(CHECKIN_KEY)||'[]'); } catch(e){ return []; }
-}
-function saveCheckins(arr){
-  // Keep max 90 days
-  const sorted = arr.sort((a,b)=>a.date<b.date?-1:1).slice(-90);
-  localStorage.setItem(CHECKIN_KEY, JSON.stringify(sorted));
-}
-
-function openCheckinModal(){
-  const todayStr = new Date().toISOString().slice(0,10);
-  const checkins = loadCheckins();
-  const todayEntry = checkins.find(c=>c.date===todayStr);
-  const count = checkins.length;
-  const pct = Math.min(100, Math.round((count/14)*100));
-
-  // Update progress bar
-  document.getElementById('checkinProgressBar').style.width = pct+'%';
-  document.getElementById('checkinProgressLabel').textContent = `Day ${count} of 14`;
-
-  if (todayEntry) {
-    // Show done state
-    document.getElementById('checkinBody').innerHTML = `
-      <div class="checkin-done-state">
-        <div class="checkin-done-icon">✅</div>
-        <div class="checkin-done-text">Checked in today!</div>
-        <div class="checkin-done-sub">Come back tomorrow evening to continue your streak.</div>
-        <div style="margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
-          ${CHECKIN_FACTORS.filter(f=>todayEntry[f.key]).map(f=>`<span style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px">${f.icon} ${f.label}</span>`).join('')}
-        </div>
-        <button class="modal-cancel" style="margin-top:20px" onclick="closeCheckinModal()">Close</button>
-      </div>`;
-  } else {
-    // Reset toggles
-    const body = `
-      <div class="checkin-factors" id="checkinFactors">
-        ${CHECKIN_FACTORS.map(f=>`<button class="checkin-toggle" data-key="${f.key}" onclick="toggleFactor(this)"><span class="ct-icon">${f.icon}</span><span class="ct-label">${f.label}</span><span class="ct-check">✓</span></button>`).join('')}
-      </div>
-      <button class="checkin-save" onclick="saveCheckin()">Save Check-in</button>`;
-    document.getElementById('checkinBody').innerHTML = body;
-  }
-
-  document.getElementById('checkinModal').classList.add('open');
-}
-
-function closeCheckinModal(){
-  document.getElementById('checkinModal').classList.remove('open');
-}
-
-function toggleFactor(btn){
-  btn.classList.toggle('active');
-}
-
-function saveCheckin(){
-  const todayStr = new Date().toISOString().slice(0,10);
-  const entry = {date: todayStr};
-  CHECKIN_FACTORS.forEach(f=>{
-    const btn = document.querySelector(`#checkinFactors [data-key="${f.key}"]`);
-    entry[f.key] = btn ? btn.classList.contains('active') : false;
-  });
-  const checkins = loadCheckins().filter(c=>c.date!==todayStr);
-  checkins.push(entry);
-  saveCheckins(checkins);
-  closeCheckinModal();
-  // Refresh FAB + tonight card CTA
-  updateCheckinFab();
-  // Re-render insights panel if data available
-  if (globalData) {
-    const newCheckins = loadCheckins();
-    const{days,scores}=globalData;
-    document.querySelector('#insights .card:nth-child(1n+2) .card-title')?.parentElement && (()=>{
-      const insightCards = document.querySelectorAll('#insights .g2 .card');
-      if (insightCards[1]) {
-        const titleEl = insightCards[1].querySelector('.card-title');
-        const newHTML = renderCheckinInsights(newCheckins, days, scores);
-        if (titleEl) insightCards[1].innerHTML = `<div class="card-title">📝 Lifestyle Experiment Results</div>${newHTML}`;
-      }
-    })();
-    // Refresh tonight card CTA
-    const ctaEl = document.querySelector('.tonight-checkin-cta');
-    if (ctaEl) ctaEl.remove();
-  }
-}
-
-function updateCheckinFab(){
-  const fab = document.getElementById('checkinFab');
-  if (!fab) return;
-  const todayStr = new Date().toISOString().slice(0,10);
-  const checkins = loadCheckins();
-  const done = checkins.some(c=>c.date===todayStr);
-  if (done) {
-    fab.innerHTML = '✅ Checked in today';
-    fab.classList.add('done');
-  } else {
-    fab.innerHTML = '🌙 Check In';
-    fab.classList.remove('done');
-  }
-}
-
-// Show/hide FAB based on current tab
-function updateFabVisibility(){
-  const fab = document.getElementById('checkinFab');
-  if (!fab) return;
-  const todayPage = document.getElementById('today');
-  fab.style.display = (todayPage && todayPage.classList.contains('active')) ? 'flex' : 'none';
-}
-
-// Correlation algorithm
-function computeCheckinInsights(checkins, days, scores){
-  // Build date -> next-day score lookup
-  const scoreMap = {};
-  days.forEach((d,i)=>{
-    // We want to look up the NEXT day's scores after a checkin date
-    // days[i] is the score date — the checkin was evening of days[i-1]
-    if (i > 0) {
-      scoreMap[days[i-1]] = {ready: scores.ready[i], sleep: scores.sleep[i]};
-    }
-  });
-
-  const results = [];
-  CHECKIN_FACTORS.forEach(factor=>{
-    const withG = [], withoutG = [];
-    checkins.forEach(c=>{
-      const nextDay = scoreMap[c.date];
-      if (!nextDay) return;
-      const combined = (nextDay.ready!=null&&nextDay.sleep!=null) ? (nextDay.ready+nextDay.sleep)/2 : nextDay.ready??nextDay.sleep;
-      if (combined==null) return;
-      if (c[factor.key]) withG.push(combined); else withoutG.push(combined);
-    });
-    if (withG.length < 3 || withoutG.length < 3) return;
-    const withAvg  = Math.round(withG.reduce((a,b)=>a+b,0)/withG.length*10)/10;
-    const woAvg    = Math.round(withoutG.reduce((a,b)=>a+b,0)/withoutG.length*10)/10;
-    const diff     = Math.round((withAvg - woAvg)*10)/10;
-    results.push({key:factor.key, label:factor.label, icon:factor.icon, with:withAvg, without:woAvg, diff, n_with:withG.length, n_without:withoutG.length});
-  });
-  results.sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff));
-  return results;
-}
-
-function renderCheckinInsights(checkins, days, scores){
-  const GOAL = 14;
-  const count = checkins.length;
-
-  if (count < GOAL) {
-    const pct = Math.min(100, Math.round((count/GOAL)*100));
-    const remaining = GOAL - count;
-    const recentSorted = [...checkins].sort((a,b)=>b.date<a.date?-1:1).slice(0,5);
-    const recentHTML = recentSorted.length ? `
-      <div class="ci-recent-list">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Recent check-ins</div>
-        ${recentSorted.map(c=>{
-          const tags = CHECKIN_FACTORS.filter(f=>c[f.key]).map(f=>`<span class="ci-tag">${f.icon} ${f.label}</span>`).join('');
-          return`<div class="ci-recent-item"><span class="ci-recent-date">${c.date.slice(5)}</span><div class="ci-tags">${tags||'<span class="ci-tag" style="color:var(--muted)">Nothing flagged</span>'}</div></div>`;
-        }).join('')}
-      </div>` : '';
-    return `<div class="ci-progress-wrap">
-      <div style="font-size:13px;font-weight:700">${count} / ${GOAL} nights logged — ${remaining} more to unlock insights</div>
-      <div class="ci-progress-bar-wrap"><div class="ci-progress-bar" style="width:${pct}%"></div></div>
-      <div style="font-size:12px;color:var(--muted)">Log your evening habits each night to discover which ones affect <em>your</em> sleep and readiness scores.</div>
-      ${recentHTML}
-    </div>
-    <button onclick="openCheckinModal()" style="width:100%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:var(--accent);padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px">🌙 Log Tonight's Check-in</button>`;
-  }
-
-  const insights = computeCheckinInsights(checkins, days, scores);
-  if (!insights.length) {
-    return `<div style="color:var(--muted);font-size:13px;padding:14px 0">You have ${count} check-ins but not enough paired Oura data yet. Keep logging and wearing your ring!</div>`;
-  }
-  return insights.map(i=>{
-    const cls = i.diff > 2 ? 'pos' : i.diff < -2 ? 'neg' : 'neu';
-    const sign = i.diff > 0 ? '+' : '';
-    const label = i.diff > 2 ? 'beneficial' : i.diff < -2 ? 'harmful' : 'neutral';
-    return`<div class="ci-factor-card">
-      <div class="ci-factor-left">
-        <span class="ci-factor-icon">${i.icon}</span>
-        <div>
-          <div class="ci-factor-name">${i.label}</div>
-          <div class="ci-factor-avgs">with: ${i.with} · without: ${i.without} · ${i.n_with}/${i.n_without} nights</div>
-        </div>
-      </div>
-      <div class="ci-factor-diff ${cls}">${sign}${i.diff} pts<br><span style="font-size:10px;font-weight:600;opacity:.8">${label}</span></div>
-    </div>`;
-  }).join('');
-}
-
-// Close checkin modal on overlay click
-document.getElementById('checkinModal').addEventListener('click', function(e){
-  if (e.target === this) closeCheckinModal();
-});
-
 // ── Token Management ──────────────────────────────────────────────────────────
 const STORAGE_KEY = 'oura_token';
 const DEMO_KEY    = 'oura_demo_mode';
@@ -1847,9 +1555,6 @@ function doSignOut() {
 document.getElementById('signOutModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
-
-// Legacy alias
-function changeToken() { switchToken(); }
 
 // Show setup if no token and not demo; handle OAuth callback
 (async function() {
@@ -2119,7 +1824,6 @@ async function loadData(){
     const d = await res.json();
     if (d.user && d.user.first_name && !isDemo()) {
       const fn = d.user.first_name;
-      document.getElementById('userName').textContent = fn + "'s";
       document.title = fn + "'s Health Dashboard";
       document.getElementById('acctName').textContent = fn;
       document.getElementById('acctAvatar').textContent = fn.charAt(0).toUpperCase();

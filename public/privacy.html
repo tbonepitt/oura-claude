@@ -21,8 +21,13 @@ ul{margin:0 0 16px 20px;color:#c9ccd4}
 ul li{margin-bottom:8px}
 .highlight{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin:28px 0}
 .highlight p{margin:0;font-weight:500;color:var(--text)}
-footer{background:var(--surface);border-top:1px solid var(--border);padding:20px 28px;text-align:center;font-size:13px;color:var(--muted)}
-footer a{color:var(--accent);text-decoration:none}
+footer{background:var(--surface);border-top:1px solid var(--border);padding:16px 28px;text-align:center;font-size:11px;color:var(--muted);line-height:2;background:linear-gradient(0deg,rgba(99,102,241,.04),transparent)}
+footer a{color:var(--muted);text-decoration:none;transition:color .15s}
+footer a:hover{color:var(--accent)}
+footer .sep{margin:0 8px;opacity:.3}
+.footer-bot{color:var(--accent);font-weight:700;animation:footerpulse 3s ease-in-out infinite}
+@keyframes footerpulse{0%,100%{opacity:1}50%{opacity:.6}}
+@media(max-width:640px){footer .sep{display:none;} footer{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px}}
 </style>
 </head>
 <body>
@@ -113,7 +118,19 @@ footer a{color:var(--accent);text-decoration:none}
 </div>
 
 <footer>
-  <a href="/">Dashboard</a> &nbsp;·&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;·&nbsp; <a href="/terms">Terms of Service</a> &nbsp;·&nbsp; Powered by <a href="https://saintlydigital.com">SaintlyDigital.com</a>
+  <span class="footer-bot">⚡ Powered by SaintlyBot</span>
+  <span class="sep">·</span>
+  Vibe coded with Claude Code
+  <span class="sep">·</span>
+  <a href="https://saintlydigital.com" target="_blank">saintlydigital.com</a>
+  <span class="sep">·</span>
+  <a href="/privacy">Privacy Policy</a>
+  <span class="sep">·</span>
+  <a href="/terms">Terms &amp; Conditions</a>
+  <span class="sep">·</span>
+  <a href="https://github.com/tbonepitt/oura-claude" target="_blank">GitHub ↗</a>
+  <span class="sep">·</span>
+  Real-time data from the <a href="https://cloud.ouraring.com/v2/docs" target="_blank">Oura API</a>
 </footer>
 
 </body>
