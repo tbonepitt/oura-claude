@@ -2241,6 +2241,12 @@ function renderProfile(user, ring, ri) {
       ${statBox('Weight', weightLbs ? weightLbs + ' lbs' : null)}
       ${statBox('BMI', bmi)}
     </div>
+    ${(u.height_m || u.weight_kg) ? `
+    <div style="margin-top:12px;padding:10px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:12px;color:#f59e0b;line-height:1.6">
+      ⚠️ <strong>These values come directly from your Oura account.</strong>
+      Oura stores height in meters internally — if your height or weight looks wrong, update it in the
+      <strong>Oura app → Profile → Personal Info</strong>. BMI will also be incorrect if height is off.
+    </div>` : ''}
   </div>
 
   ${ring ? `<div class="card">
