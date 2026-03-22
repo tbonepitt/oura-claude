@@ -367,6 +367,26 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 .changelog-box ul li strong{color:var(--text)}
 .demo-exit-btn{background:var(--accent);border:none;border-radius:6px;color:#fff;padding:3px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-left:12px;transition:opacity .15s}
 .demo-exit-btn:hover{opacity:.8}
+
+/* ── Feedback widget ──────────────────────────────────────────────────────── */
+.feedback-widget{position:fixed;bottom:22px;right:22px;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,.35);width:230px;display:none;animation:fbSlide .25s ease}
+.feedback-widget.visible{display:block}
+@keyframes fbSlide{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.fb-label{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.fb-btns{display:flex;gap:8px}
+.fb-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 8px;font-size:20px;cursor:pointer;transition:all .15s;text-align:center}
+.fb-btn:hover{border-color:var(--accent);transform:scale(1.05)}
+.fb-btn.selected-up{background:rgba(34,197,94,.15);border-color:#22c55e}
+.fb-btn.selected-down{background:rgba(239,68,68,.15);border-color:#ef4444}
+.fb-comment{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;resize:none;margin-top:10px;outline:none;transition:border-color .15s}
+.fb-comment:focus{border-color:var(--accent)}
+.fb-submit{width:100%;background:var(--accent);border:none;border-radius:8px;color:#fff;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .15s}
+.fb-submit:hover{opacity:.85}
+.fb-thanks{text-align:center;padding:10px 0;font-size:13px;color:var(--green)}
+.fb-dismiss{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;padding:2px}
+
+/* User count badge on login */
+.user-count-badge{display:inline-block;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--accent);font-weight:600;margin-top:10px}
 </style>
 </head>
 <body>
@@ -422,6 +442,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
     <div class="setup-or">or</div>
     <button class="demo-btn" onclick="loadDemo()">👀 Preview with demo data</button>
     <p class="setup-privacy">🔒 Your token is stored only in your browser — never on our servers.</p>
+    <div id="userCountBadge" style="margin-top:12px;display:none"><span class="user-count-badge" id="userCountText">Loading…</span></div>
   </div>
 </div>
 
@@ -2171,6 +2192,7 @@ async function loadData(){
       anomalies:     d.anomalies?.length ?? 0,
     });
     render(d);
+    showFeedbackWidget();
   } catch(e) {
     track('dashboard_error');
     document.getElementById('today').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data. Check your token or try again.</div></div>';
@@ -2264,8 +2286,78 @@ function renderProfile(user, ring, ri) {
   </div>`;
 }
 
+// ── Feedback widget ───────────────────────────────────────────────────────────
+let _feedbackVote = null;
+
+function showFeedbackWidget() {
+  if (localStorage.getItem('oura_edge_feedback_done')) return;
+  setTimeout(() => document.getElementById('feedbackWidget').classList.add('visible'), 3000);
+}
+
+function dismissFeedback() {
+  document.getElementById('feedbackWidget').classList.remove('visible');
+}
+
+function selectVote(vote) {
+  _feedbackVote = vote;
+  document.getElementById('fbUp').classList.toggle('selected-up',   vote === 'up');
+  document.getElementById('fbDown').classList.toggle('selected-down', vote === 'down');
+  document.getElementById('fbCommentWrap').style.display = 'block';
+}
+
+async function submitFeedback() {
+  if (!_feedbackVote) return;
+  const comment = document.getElementById('fbComment').value.trim();
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({vote: _feedbackVote, comment})
+    });
+  } catch(e) {}
+  localStorage.setItem('oura_edge_feedback_done', '1');
+  document.getElementById('fbMain').style.display  = 'none';
+  document.getElementById('fbThanks').style.display = 'block';
+  setTimeout(() => document.getElementById('feedbackWidget').classList.remove('visible'), 2000);
+  track('feedback_submitted', {vote: _feedbackVote, has_comment: !!comment});
+}
+
+// ── Stats (user count on login screen) ────────────────────────────────────────
+async function fetchStats() {
+  try {
+    const res  = await fetch('/api/stats');
+    const data = await res.json();
+    if (data.users > 0) {
+      const badge = document.getElementById('userCountBadge');
+      const text  = document.getElementById('userCountText');
+      if (badge && text) {
+        text.textContent = `🔬 ${data.users.toLocaleString()} Oura users tried this`;
+        badge.style.display = 'block';
+      }
+    }
+  } catch(e) {}
+}
+
 loadData();
+fetchStats();
 </script>
+
+<!-- Feedback Widget -->
+<div class="feedback-widget" id="feedbackWidget">
+  <button class="fb-dismiss" onclick="dismissFeedback()" title="Dismiss">×</button>
+  <div id="fbMain">
+    <div class="fb-label">Rate Oura Edge</div>
+    <div class="fb-btns">
+      <button class="fb-btn" id="fbUp"   onclick="selectVote('up')"   title="Helpful">👍</button>
+      <button class="fb-btn" id="fbDown" onclick="selectVote('down')" title="Not helpful">👎</button>
+    </div>
+    <div id="fbCommentWrap" style="display:none">
+      <textarea class="fb-comment" id="fbComment" rows="2" maxlength="280" placeholder="Optional: what could be better?"></textarea>
+      <button class="fb-submit" onclick="submitFeedback()">Send feedback →</button>
+    </div>
+  </div>
+  <div class="fb-thanks" id="fbThanks" style="display:none">✅ Thanks for the feedback!</div>
+</div>
 
 <!-- Changelog Modal -->
 <div class="changelog-modal" id="changelogModal" onclick="if(event.target===this)closeChangelog()">

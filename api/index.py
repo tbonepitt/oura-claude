@@ -67,6 +67,25 @@ def linreg(xs, ys):
 
 def clamp(v, lo, hi): return max(lo, min(hi, v))
 
+# ── Upstash Redis (KV store for feedback & user counter) ──────────────────────
+
+def kv(cmd_args):
+    """Execute an Upstash Redis REST command. Returns result or None if KV not configured."""
+    url   = os.environ.get("UPSTASH_REDIS_REST_URL", "").rstrip("/")
+    token = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
+    if not url or not token:
+        return None
+    try:
+        body = json.dumps(cmd_args).encode()
+        req  = Request(url, data=body, headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        })
+        with urlopen(req, timeout=4) as r:
+            return json.loads(r.read()).get("result")
+    except Exception:
+        return None
+
 # ── Sleep Science ──────────────────────────────────────────────────────────────
 
 STAGE_Y = {"1": 0, "2": 2, "3": 1, "4": 3}
@@ -1140,10 +1159,36 @@ def validate_endpoint():
     try:
         info = fetch("personal_info", None, None, token)
         if isinstance(info, dict) and ("first_name" in info or "id" in info):
+            # Count unique user connections (best-effort, non-blocking)
+            try: kv(["INCR", "oura_edge:users"])
+            except Exception: pass
             return jsonify({"valid": True, "first_name": info.get("first_name", "")})
         return jsonify({"valid": False, "error": "Token rejected by Oura API"}), 401
     except Exception:
         return jsonify({"valid": False, "error": "validation_failed"}), 401
+
+@app.route("/api/stats")
+def stats_endpoint():
+    """Returns public usage stats: user count, thumbs up/down."""
+    users = kv(["GET", "oura_edge:users"]) or 0
+    up    = kv(["GET", "oura_edge:thumbs_up"]) or 0
+    down  = kv(["GET", "oura_edge:thumbs_down"]) or 0
+    return jsonify({"users": int(users or 0), "thumbs_up": int(up or 0), "thumbs_down": int(down or 0)})
+
+@app.route("/api/feedback", methods=["POST"])
+def feedback_endpoint():
+    """Store a thumbs up/down vote and optional comment."""
+    data    = request.get_json(silent=True) or {}
+    vote    = data.get("vote", "")
+    comment = str(data.get("comment", ""))[:280].strip()
+    if vote not in ("up", "down"):
+        return jsonify({"error": "invalid vote"}), 400
+    kv(["INCR", f"oura_edge:thumbs_{vote}"])
+    if comment:
+        entry = json.dumps({"vote": vote, "comment": comment, "ts": str(date.today())})
+        kv(["LPUSH", "oura_edge:comments", entry])
+        kv(["LTRIM", "oura_edge:comments", 0, 299])  # keep last 300
+    return jsonify({"ok": True})
 
 @app.route("/api/demo")
 def demo_endpoint():
