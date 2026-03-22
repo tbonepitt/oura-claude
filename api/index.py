@@ -421,7 +421,7 @@ def build_data(token):
     vo2_series     = [vo2_map.get(d,{}).get("vo2_max") for d in days]
 
     # Latest vitals values
-    latest_spo2    = next((s.get("average") for s in reversed(spo2_avg) if s), None)
+    latest_spo2    = next((v for v in reversed(spo2_avg) if v is not None), None)
     latest_bdi     = next((v for v in reversed(spo2_bdi) if v is not None), None)
     latest_stress  = stress_map.get(days[-1],{}) if days else {}
     latest_cardio  = next((v for v in reversed(cardio_age) if v is not None), None)
