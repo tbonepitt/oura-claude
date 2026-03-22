@@ -1,25 +1,14 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.py": { "runtime": "python3.9" }
-  },
-  "rewrites": [
-    { "source": "/api/:path*",     "destination": "/api/index.py" },
-    { "source": "/privacy",        "destination": "/public/privacy.html" },
-    { "source": "/terms",          "destination": "/public/terms.html" },
-    { "source": "/auth/callback",  "destination": "/public/index.html" },
-    { "source": "/(.*)",           "destination": "/public/index.html" }
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python" },
+    { "src": "public/**",    "use": "@vercel/static" }
   ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options",    "value": "nosniff" },
-        { "key": "X-Frame-Options",           "value": "DENY" },
-        { "key": "Referrer-Policy",           "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy",        "value": "geolocation=(), microphone=(), camera=()" },
-        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" }
-      ]
-    }
+  "routes": [
+    { "src": "/api/(.*)",      "dest": "/api/index.py" },
+    { "src": "/privacy",       "dest": "/public/privacy.html" },
+    { "src": "/terms",         "dest": "/public/terms.html" },
+    { "src": "/auth/callback", "dest": "/public/index.html" },
+    { "src": "/(.*)",          "dest": "/public/index.html" }
   ]
 }
