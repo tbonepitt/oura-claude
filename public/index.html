@@ -207,8 +207,6 @@ canvas{display:block}
 /* Ring info card */
 .ring-card{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .ring-card-left{display:flex;align-items:center;gap:14px}
-.ring-emoji{font-size:28px;line-height:1}
-.ring-img{width:56px;height:56px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .ring-model{font-size:16px;font-weight:800;letter-spacing:-.3px}
 .ring-details{font-size:12px;color:var(--muted);margin-top:3px}
 .ring-details span{margin-right:12px}
@@ -474,9 +472,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 </main>
 
 <footer class="site-footer">
-  <span class="footer-bot">⚡ Powered by SaintlyBot</span>
-  <span class="sep">·</span>
-  Vibe coded with Claude Code
+  <span class="footer-bot">⚡ Powered by SaintlyBot and Claude Code</span>
   <span class="sep">·</span>
   <a href="https://saintlydigital.com" target="_blank">saintlydigital.com</a>
   <span class="sep">·</span>
@@ -590,7 +586,6 @@ function render(d){
   document.getElementById('today').innerHTML=`
   <div class="ring-card">
     <div class="ring-card-left">
-      <div class="ring-emoji">💍</div>
       <div>
         <div class="ring-model">Oura ${escH(ringModel)}${ring?.color?' · '+escH(ring.color):''}</div>
         <div class="ring-details">
