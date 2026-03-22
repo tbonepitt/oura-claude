@@ -312,6 +312,12 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   .footer-divider{display:none}
 }
 
+/* ── Global loading overlay ─────────────────────────────────────────────────── */
+#global-loader{position:fixed;inset:0;z-index:8000;background:var(--bg);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#global-loader.visible{display:flex}
+#global-loader .spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+#global-loader .load-msg{color:var(--muted);font-size:14px}
+
 /* ── Setup / Onboarding ─────────────────────────────────────────────────────── */
 #setup-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px}
 .setup-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px 40px;max-width:500px;width:100%;text-align:center}
@@ -403,6 +409,12 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 </style>
 </head>
 <body>
+
+<!-- ── Global Loading Overlay ───────────────────────────────────────────────── -->
+<div id="global-loader">
+  <div class="spinner"></div>
+  <div class="load-msg">Fetching your biometrics…</div>
+</div>
 
 <!-- ── Setup / Onboarding Screen ─────────────────────────────────────────────── -->
 <div id="setup-screen">
@@ -2171,7 +2183,8 @@ async function loadData(){
   if (getToken()) localStorage.removeItem(DEMO_KEY);
   if (!getToken() && !isDemo()) return;
 
-  document.getElementById('today').innerHTML='<div class="loading"><div class="spinner"></div><div style="color:var(--muted)">Fetching your biometrics…</div></div>';
+  const loader = document.getElementById('global-loader');
+  loader.classList.add('visible');
 
   try {
     let res;
@@ -2208,11 +2221,13 @@ async function loadData(){
       activity_score:d.latest?.activity ?? null,
       anomalies:     d.anomalies?.length ?? 0,
     });
+    loader.classList.remove('visible');
     render(d);
     showFeedbackWidget();
   } catch(e) {
+    loader.classList.remove('visible');
     track('dashboard_error');
-    document.getElementById('today').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data. Check your token or try again.</div></div>';
+    document.getElementById('insights').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data. Check your token or try again.</div></div>';
   }
 }
 
