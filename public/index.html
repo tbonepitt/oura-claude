@@ -610,6 +610,10 @@ document.querySelectorAll('.tab').forEach(tab=>{
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(tab.dataset.page).classList.add('active');
+    // Resize all Chart.js instances so charts clipped in hidden tabs render correctly
+    requestAnimationFrame(()=>{
+      if(window.Chart) Chart.instances && Object.values(Chart.instances).forEach(c=>{try{c.resize();}catch(e){}});
+    });
     track('tab_view', {tab: tab.dataset.page});
   });
 });
