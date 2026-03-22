@@ -578,7 +578,8 @@ function fmtActivity(act){
 function render(d){
   destroyAll();
   globalData=d;
-  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,correlation_insights:ci,checkin_insights,forecast,anomalies,sleep_debt,debt_log,recovery_intel:ri,heatmap,ring,sleep_recommendation,resilience,workouts}=d;
+  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,correlation_insights:ci,checkin_insights,forecast,anomalies,sleep_debt,debt_log,recovery_intel:ri,heatmap,ring,sleep_recommendation,resilience,workouts,data_dates}=d;
+  const activityLag = data_dates?.activity_is_yesterday;
   const N30=30;
   const labels30=shortDates(days,N30);
   const allLabels=days.map(shortDate);
@@ -647,7 +648,11 @@ function render(d){
     </div>
   </div>
   <div class="g4">
-    <div class="card"><div class="card-title">Steps Today</div><div class="stat-item" style="background:none;padding:0"><div class="val">${latest.steps?.toLocaleString()??'—'}</div><div class="lbl">30-day avg ${Math.round(meanArr(scores.steps.slice(-30))||0).toLocaleString()}</div></div></div>
+    <div class="card">
+      <div class="card-title">Steps ${activityLag ? '<span style="font-size:10px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,.12);padding:2px 7px;border-radius:10px;margin-left:4px">Yesterday</span>' : 'Today'}</div>
+      <div class="stat-item" style="background:none;padding:0"><div class="val">${latest.steps?.toLocaleString()??'—'}</div><div class="lbl">30-day avg ${Math.round(meanArr(scores.steps.slice(-30))||0).toLocaleString()}</div></div>
+      ${activityLag ? `<div style="font-size:11px;color:var(--muted);margin-top:6px">⏱ Activity syncs at end of day — check the Oura app for live steps</div>` : ''}
+    </div>
     <div class="card"><div class="card-title">Active Calories</div><div class="stat-item" style="background:none;padding:0"><div class="val">${latest.calories??'—'} <span style="font-size:14px;color:var(--muted)">kcal</span></div></div></div>
     <div class="card"><div class="card-title">HRV Balance</div><div class="stat-item" style="background:none;padding:0"><div class="val" style="color:${scoreColor(latest.hrv_bal)}">${latest.hrv_bal??'—'}</div><div class="lbl">Sleep avg ${latest.avg_hrv?Math.round(latest.avg_hrv)+'ms':'—'}</div></div></div>
     <div class="card"><div class="card-title">Resting HR</div><div class="stat-item" style="background:none;padding:0"><div class="val">${latest.avg_hr?Math.round(latest.avg_hr):'—'} <span style="font-size:14px;color:var(--muted)">bpm</span></div><div class="lbl">During sleep</div></div></div>

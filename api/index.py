@@ -535,7 +535,8 @@ def build_data(token):
     ring_info      = ring_config[0] if isinstance(ring_config, list) and ring_config else {}
 
     s_map={d["day"]:d for d in sleep}; r_map={d["day"]:d for d in ready}; a_map={d["day"]:d for d in activity}
-    days=sorted(set(s_map)&set(r_map)&set(a_map))
+    # Use union of sleep+readiness days (activity often lags 1 day — don't drop today's sleep/readiness)
+    days=sorted(set(s_map)|set(r_map))
 
     def series(src, key, sub=None):
         out=[]
@@ -569,9 +570,9 @@ def build_data(token):
     dow_sleep=defaultdict(list); dow_ready=defaultdict(list); dow_steps=defaultdict(list)
     for d in days:
         dow=date.fromisoformat(d).weekday()
-        if s_map[d].get("score"): dow_sleep[dow].append(s_map[d]["score"])
-        if r_map[d].get("score"): dow_ready[dow].append(r_map[d]["score"])
-        if a_map[d].get("steps"): dow_steps[dow].append(a_map[d]["steps"])
+        if s_map.get(d,{}).get("score"): dow_sleep[dow].append(s_map[d]["score"])
+        if r_map.get(d,{}).get("score"): dow_ready[dow].append(r_map[d]["score"])
+        if a_map.get(d,{}).get("steps"): dow_steps[dow].append(a_map[d]["steps"])
 
     n=len(days)
 
@@ -790,6 +791,14 @@ def build_data(token):
         "scores":{"sleep":sleep_scores,"ready":ready_scores,"activity":act_scores,
                   "steps":steps_series,"calories":calories,"deep":deep_series,"rem":rem_series,
                   "restfulness":rest_series,"efficiency":eff_series,"hrv":hrv_series,"rhr":rhr_series,"temp":temp_series},
+        "data_dates":{
+            "today":          str(today),
+            "activity":       latest_act.get("day"),
+            "sleep":          latest_sleep.get("day"),
+            "readiness":      latest_ready.get("day"),
+            "detail":         latest_det.get("day"),
+            "activity_is_yesterday": latest_act.get("day") != str(today),
+        },
         "latest":{"sleep":latest_sleep.get("score"),"ready":latest_ready.get("score"),
                   "activity":latest_act.get("score"),"steps":latest_act.get("steps"),
                   "calories":latest_act.get("active_calories"),"avg_hrv":latest_det.get("average_hrv"),
