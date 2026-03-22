@@ -359,19 +359,25 @@ def calc_recovery_intelligence(detail, ready_data, sleep_data, hrv_series, debt_
     else:
         personal_target = 7.5
 
-    # 2. Average wake time from last 7 nights (to compute bedtime target)
+    # 2. Average wake time and sleep latency from last 7 nights
     wake_times_min = []
+    latency_mins   = []
     for d in detail[-7:]:
-        end_str = d.get("bedtime_end", "")
+        end_str   = d.get("bedtime_end", "")
+        start_str = d.get("bedtime_start", "")
+        latency   = d.get("latency")  # seconds until sleep onset
         if end_str:
             try:
-                wake_dt = datetime.fromisoformat(end_str)
-                # Convert to minutes since midnight
+                wake_dt  = datetime.fromisoformat(end_str)
                 wake_min = wake_dt.hour * 60 + wake_dt.minute
                 wake_times_min.append(wake_min)
             except Exception:
                 pass
-    avg_wake_min = round(mean(wake_times_min)) if wake_times_min else None
+        if latency and latency > 0:
+            latency_mins.append(latency / 60)
+
+    avg_wake_min    = round(mean(wake_times_min)) if wake_times_min else None
+    avg_latency_min = round(mean(latency_mins))   if latency_mins   else 15  # default 15 min
 
     def mins_to_hhmm(m):
         """Convert minutes-since-midnight to HH:MM AM/PM, handling negative (previous day)."""
@@ -381,24 +387,27 @@ def calc_recovery_intelligence(detail, ready_data, sleep_data, hrv_series, debt_
         h12 = h % 12 or 12
         return f"{h12}:{mn:02d} {period}"
 
-    # 3. Payback plan with bedtime
+    # 3. Payback plan with bedtime (accounting for sleep latency)
+    # "In bed by" = wake_time - target_sleep_hrs - avg_latency
+    # This gives the time to GET INTO BED, not the time to fall asleep
     if debt > 0:
         nightly_surplus = min(1.0, round(personal_target * 0.12, 1))
         nights_to_clear = math.ceil(debt / nightly_surplus) if nightly_surplus > 0 else 99
         target_hrs = round(personal_target + nightly_surplus, 1)
-        bedtime_str = mins_to_hhmm(avg_wake_min - round(target_hrs * 60)) if avg_wake_min else None
+        total_in_bed_min = round(target_hrs * 60) + avg_latency_min
+        bedtime_str = mins_to_hhmm(avg_wake_min - total_in_bed_min) if avg_wake_min else None
         payback_plan = {
             "nights": nights_to_clear,
             "target_hrs": target_hrs,
             "surplus": nightly_surplus,
             "bedtime": bedtime_str,
             "wake_time": mins_to_hhmm(avg_wake_min) if avg_wake_min else None,
+            "avg_latency_min": avg_latency_min,
         }
     else:
-        # Even with no debt, show the maintenance bedtime
-        maintenance_bedtime = mins_to_hhmm(avg_wake_min - round(personal_target * 60)) if avg_wake_min else None
+        total_in_bed_min = round(personal_target * 60) + avg_latency_min
+        maintenance_bedtime = mins_to_hhmm(avg_wake_min - total_in_bed_min) if avg_wake_min else None
         payback_plan = None
-        avg_wake_str = mins_to_hhmm(avg_wake_min) if avg_wake_min else None
 
     # 3. Debt trend over last 14 days
     if len(debt_log) >= 14:
@@ -482,9 +491,10 @@ def calc_recovery_intelligence(detail, ready_data, sleep_data, hrv_series, debt_
 
     return {
         "personal_target":      personal_target,
+        "avg_latency_min":      avg_latency_min,
         "payback_plan":         payback_plan,
         "maintenance_bedtime":  maintenance_bedtime,
-        "avg_wake_time":        avg_wake_str,
+        "avg_wake_time":        mins_to_hhmm(avg_wake_min) if avg_wake_min else None,
         "debt_trend":           debt_trend,
         "last_night_delta":     last_night_delta,
         "recovery_rate":        recovery_rate,
@@ -764,9 +774,18 @@ def build_data(token):
     tonight_card=build_tonight_card(latest_act,latest_ready,latest_sleep,deep_decoder,
                                     sleep_debt,act_scores,ready_scores,sleep_scores)
     heatmap=[{"date":d,"score":r_map.get(d,{}).get("score")} for d in days]
-    first_name=user_info.get("first_name","") if isinstance(user_info,dict) else ""
+    first_name = user_info.get("first_name","") if isinstance(user_info,dict) else ""
+    email      = user_info.get("email","")      if isinstance(user_info,dict) else ""
+    user_age   = user_info.get("age")           if isinstance(user_info,dict) else None
+    bio_sex    = user_info.get("biological_sex","") if isinstance(user_info,dict) else ""
+    weight_kg  = user_info.get("weight")        if isinstance(user_info,dict) else None
+    height_m   = user_info.get("height")        if isinstance(user_info,dict) else None
 
-    return {"generated":str(today),"user":{"first_name":first_name},"days":days,
+    return {"generated":str(today),"user":{
+        "first_name": first_name, "email": email,
+        "age": user_age, "biological_sex": bio_sex,
+        "weight_kg": weight_kg, "height_m": height_m,
+    },"days":days,
         "ring": ring_display,
         "scores":{"sleep":sleep_scores,"ready":ready_scores,"activity":act_scores,
                   "steps":steps_series,"calories":calories,"deep":deep_series,"rem":rem_series,
@@ -1054,8 +1073,9 @@ def generate_demo_data():
         "sleep_debt": sleep_debt, "debt_log": debt_log,
         "recovery_intel": {
             "personal_target":     7.3,
-            "payback_plan":        {"nights": 6, "target_hrs": 8.2, "surplus": 0.9, "bedtime": "10:05 PM", "wake_time": "6:17 AM"},
-            "maintenance_bedtime": "10:55 PM",
+            "avg_latency_min":     14,
+            "payback_plan":        {"nights": 6, "target_hrs": 8.2, "surplus": 0.9, "bedtime": "9:51 PM", "wake_time": "6:17 AM", "avg_latency_min": 14},
+            "maintenance_bedtime": "10:41 PM",
             "avg_wake_time":       "6:17 AM",
             "debt_trend":          {"direction": "accumulating", "hrs_per_week": 1.4},
             "last_night_delta":    1.3,

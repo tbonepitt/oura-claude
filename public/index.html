@@ -395,8 +395,12 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
           <div class="setup-step-num">3</div>
           <div>Paste it below — your data loads instantly</div>
         </div>
+        <div class="setup-step">
+          <div class="setup-step-num">4</div>
+          <div>Let your browser save it when prompted — so you never have to enter it again</div>
+        </div>
       </div>
-      <input type="password" id="token-input" class="token-input" placeholder="Paste your Oura token here…" autocomplete="off" />
+      <input type="password" id="token-input" class="token-input" placeholder="Paste your Oura token here…" autocomplete="current-password" />
       <div id="token-error" class="token-error">⚠️ Invalid token — double-check and try again.</div>
       <div id="token-validating" class="token-validating">⏳ Validating token…</div>
       <button class="connect-btn" id="connect-btn" onclick="connectToken()">Connect my Oura Ring →</button>
@@ -462,6 +466,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <div class="tab" data-page="sleep-science">Sleep Science</div>
   <div class="tab" data-page="vitals">Vitals</div>
   <div class="tab" data-page="insights">Insights</div>
+  <div class="tab" data-page="profile">Profile</div>
 </nav>
 
 <main>
@@ -472,6 +477,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <div id="sleep-science" class="page"></div>
   <div id="vitals" class="page"></div>
   <div id="insights" class="page"></div>
+  <div id="profile" class="page"></div>
 </main>
 
 <footer class="site-footer">
@@ -862,6 +868,9 @@ function render(d){
     ${heatmapHTML(heatmap)}
     <div style="margin-top:16px;font-size:13px;color:var(--muted)">Each cell = one day. Hover for the score. ${heatmap.filter(h=>h.score>=85).length} optimal days, ${heatmap.filter(h=>h.score&&h.score<65).length} poor days in the last 60.</div>
   </div>`;
+
+  // ── PROFILE PAGE ──────────────────────────────────────────────────────────
+  renderProfile(d.user, d.ring, ri);
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
@@ -908,16 +917,18 @@ function recoveryIntelHTML(debt, log, ri, optimalBed){
     ? `Aim for ${payback_plan.target_hrs}h to start repaying your ${debt}h debt`
     : `Your personal sweet spot — ${personal_target}h based on your best recovery nights`;
 
+  const latency = ri?.avg_latency_min || payback_plan?.avg_latency_min || 15;
   const bedtimeCTA = bedtime ? `
     <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:14px 18px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:4px">🛏️ Tonight's Target Bedtime</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:4px">🛏️ Get In Bed By</div>
         <div style="font-size:36px;font-weight:900;letter-spacing:-1px;color:var(--text);line-height:1">${bedtime}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px">${bedtimeContext}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">Includes your avg ${latency}-min time to fall asleep</div>
       </div>
       <div style="text-align:right;font-size:11px;color:var(--muted)">
         <div>${wakeContext}</div>
-        ${payback_plan ? `<div style="color:#f59e0b;font-weight:600;margin-top:4px">Clear in ${payback_plan.nights} nights</div>` : ''}
+        ${payback_plan ? `<div style="color:#f59e0b;font-weight:600;margin-top:4px">Clear debt in ${payback_plan.nights} nights</div>` : ''}
       </div>
     </div>` : '';
 
@@ -2062,6 +2073,8 @@ function renderVitals(v, days, user, res, ci) {
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 async function loadData(){
+  // If a real token exists, always clear demo mode — prevents stale demo flag
+  if (getToken()) localStorage.removeItem(DEMO_KEY);
   if (!getToken() && !isDemo()) return;
 
   document.getElementById('today').innerHTML='<div class="loading"><div class="spinner"></div><div style="color:var(--muted)">Fetching your biometrics…</div></div>';
@@ -2078,12 +2091,17 @@ async function loadData(){
       }
     }
     const d = await res.json();
-    if (d.user && d.user.first_name && !isDemo()) {
-      const fn = d.user.first_name;
-      document.title = fn + "'s Oura Edge";
-      document.getElementById('headerName').textContent = fn + "'s";
-      document.getElementById('acctName').textContent = fn;
-      document.getElementById('acctAvatar').textContent = fn.charAt(0).toUpperCase();
+    if (!isDemo() && d.user) {
+      // Oura API returns email but not first_name — derive display name from email prefix
+      const fn = d.user.first_name || (d.user.email ? d.user.email.split('@')[0] : '');
+      if (fn) {
+        // Capitalize first letter, handle dot/underscore separators (e.g. john.smith → John)
+        const display = fn.charAt(0).toUpperCase() + fn.slice(1).replace(/[._-]./, m => m.toUpperCase());
+        document.title = display + "'s Oura Edge";
+        document.getElementById('headerName').textContent = display + "'s";
+        document.getElementById('acctName').textContent = display;
+        document.getElementById('acctAvatar').textContent = display.charAt(0).toUpperCase();
+      }
     }
     track('dashboard_loaded', {
       mode:          isDemo() ? 'demo' : 'live',
@@ -2098,6 +2116,94 @@ async function loadData(){
     document.getElementById('today').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data. Check your token or try again.</div></div>';
   }
 }
+
+// ── Profile Page ──────────────────────────────────────────────────────────────
+function renderProfile(user, ring, ri) {
+  const el = document.getElementById('profile');
+  if (!el) return;
+  const u = user || {};
+
+  const rawName = u.first_name || (u.email ? u.email.split('@')[0] : '');
+  const displayName = rawName
+    ? rawName.charAt(0).toUpperCase() + rawName.slice(1).replace(/[._-]./g, m => m.toUpperCase())
+    : 'You';
+
+  const weightLbs = u.weight_kg ? Math.round(u.weight_kg * 2.205) : null;
+  const heightIn  = u.height_m  ? u.height_m * 39.3701 : null;
+  const feet      = heightIn ? Math.floor(heightIn / 12) : null;
+  const inches    = heightIn ? Math.round(heightIn % 12) : null;
+  const bmi       = (u.weight_kg && u.height_m) ? (u.weight_kg / (u.height_m * u.height_m)).toFixed(1) : null;
+
+  const statBox = (label, value, color='var(--text)') => value != null
+    ? `<div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:${color}">${value}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px">${label}</div>
+      </div>`
+    : '';
+
+  const pr = ri?.personal_records;
+
+  el.innerHTML = `
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0">${displayName.charAt(0)}</div>
+      <div>
+        <div style="font-size:20px;font-weight:800">${displayName}</div>
+        ${u.email ? `<div style="font-size:13px;color:var(--muted);margin-top:2px">${u.email}</div>` : ''}
+        ${u.biological_sex ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;text-transform:capitalize">${u.biological_sex}</div>` : ''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px">
+      ${statBox('Age', u.age ? u.age + ' yrs' : null)}
+      ${statBox('Height', feet ? `${feet}'${inches}"` : null)}
+      ${statBox('Weight', weightLbs ? weightLbs + ' lbs' : null)}
+      ${statBox('BMI', bmi)}
+    </div>
+  </div>
+
+  ${ring ? `<div class="card">
+    <div class="card-title">Oura Ring</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:4px">
+      ${statBox('Model', ring.model)}
+      ${statBox('Color', ring.color)}
+      ${statBox('Size', ring.size ? 'Size ' + ring.size : null)}
+      ${statBox('Firmware', ring.firmware)}
+      ${ring.since ? statBox('Member Since', new Date(ring.since).toLocaleDateString('en-US',{month:'short',year:'numeric'})) : ''}
+    </div>
+  </div>` : ''}
+
+  ${pr ? `<div class="card">
+    <div class="card-title">🏆 Personal Records</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px">
+      ${pr.best_ready ? `<div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#22c55e">${pr.best_ready.value}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Best Readiness</div>
+        <div style="font-size:11px;color:var(--muted)">${pr.best_ready.date}</div></div>` : ''}
+      ${pr.best_deep ? `<div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#3b82f6">${pr.best_deep.value}m</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Best Deep Sleep</div>
+        <div style="font-size:11px;color:var(--muted)">${pr.best_deep.date}</div></div>` : ''}
+      ${pr.best_hrv ? `<div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#a855f7">${pr.best_hrv.value}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Best HRV</div>
+        <div style="font-size:11px;color:var(--muted)">${pr.best_hrv.date}</div></div>` : ''}
+    </div>
+  </div>` : ''}
+
+  <div class="card">
+    <div class="card-title">🔒 Privacy & Data</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.7">
+      Your token and biometric data are <strong style="color:var(--text)">never stored on our servers</strong>.
+      Data is fetched directly from Oura's API each session and stays in your browser only.
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+      <a href="/privacy" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;padding:6px 12px;border:1px solid var(--accent);border-radius:6px">Privacy Policy</a>
+      <a href="/terms"   target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;padding:6px 12px;border:1px solid var(--accent);border-radius:6px">Terms of Service</a>
+      <button onclick="confirmSignOut()" style="font-size:12px;color:#ef4444;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:6px 12px;cursor:pointer">Sign Out & Delete Data</button>
+    </div>
+  </div>`;
+}
+
 loadData();
 </script>
 </body>
