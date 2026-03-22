@@ -409,7 +409,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 </div>
 
 <header>
-  <h1>Oura <span>Edge</span> <span style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle">v3.0</span></h1>
+  <h1><span id="headerName">Your</span> Oura <span>Edge</span> <span style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle">v4.0</span></h1>
   <div class="header-right">
     <div class="dot"></div>
     <div class="date-badge" id="dateLabel">Loading…</div>
@@ -2061,7 +2061,8 @@ async function loadData(){
     const d = await res.json();
     if (d.user && d.user.first_name && !isDemo()) {
       const fn = d.user.first_name;
-      document.title = fn + "'s Health Dashboard";
+      document.title = fn + "'s Oura Edge";
+      document.getElementById('headerName').textContent = fn + "'s";
       document.getElementById('acctName').textContent = fn;
       document.getElementById('acctAvatar').textContent = fn.charAt(0).toUpperCase();
     }
