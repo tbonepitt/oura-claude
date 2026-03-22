@@ -369,21 +369,34 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 .demo-exit-btn:hover{opacity:.8}
 
 /* ── Feedback widget ──────────────────────────────────────────────────────── */
-.feedback-widget{position:fixed;bottom:22px;right:22px;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,.35);width:230px;display:none;animation:fbSlide .25s ease}
+.feedback-widget{position:fixed;bottom:22px;right:22px;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 18px 16px;box-shadow:0 8px 32px rgba(0,0,0,.35);width:270px;display:none;animation:fbSlide .25s ease}
 .feedback-widget.visible{display:block}
 @keyframes fbSlide{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .fb-label{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
 .fb-btns{display:flex;gap:8px}
-.fb-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 8px;font-size:20px;cursor:pointer;transition:all .15s;text-align:center}
+.fb-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 8px;font-size:22px;cursor:pointer;transition:all .15s;text-align:center}
 .fb-btn:hover{border-color:var(--accent);transform:scale(1.05)}
 .fb-btn.selected-up{background:rgba(34,197,94,.15);border-color:#22c55e}
 .fb-btn.selected-down{background:rgba(239,68,68,.15);border-color:#ef4444}
-.fb-comment{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;resize:none;margin-top:10px;outline:none;transition:border-color .15s}
+.fb-categories{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.fb-cat{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.fb-cat:hover{border-color:var(--accent);color:var(--text)}
+.fb-cat.selected{background:rgba(139,92,246,.15);border-color:var(--accent);color:var(--accent);font-weight:600}
+.fb-note-wrap{margin-top:10px;position:relative}
+.fb-comment{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;resize:none;outline:none;transition:border-color .15s;box-sizing:border-box}
 .fb-comment:focus{border-color:var(--accent)}
-.fb-submit{width:100%;background:var(--accent);border:none;border-radius:8px;color:#fff;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .15s}
+.fb-char{position:absolute;bottom:6px;right:8px;font-size:10px;color:var(--muted);pointer-events:none}
+.fb-char.near-limit{color:#f59e0b}
+.fb-email{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none;transition:border-color .15s;box-sizing:border-box;margin-top:6px}
+.fb-email:focus{border-color:var(--accent)}
+.fb-submit{width:100%;background:var(--accent);border:none;border-radius:8px;color:#fff;padding:9px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .15s}
 .fb-submit:hover{opacity:.85}
-.fb-thanks{text-align:center;padding:10px 0;font-size:13px;color:var(--green)}
+.fb-submit:disabled{opacity:.45;cursor:default}
+.fb-thanks{text-align:center;padding:12px 0 6px;font-size:13px;color:var(--green)}
+.fb-thanks-sub{text-align:center;font-size:11px;color:var(--muted);margin-top:4px}
 .fb-dismiss{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;padding:2px}
+.fb-step{font-size:10px;color:var(--muted);margin-bottom:8px}
+.fb-divider{border:none;border-top:1px solid var(--border);margin:10px 0}
 
 /* User count badge on login */
 .user-count-badge{display:inline-block;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--accent);font-weight:600;margin-top:10px}
@@ -2294,14 +2307,16 @@ function renderProfile(user, ring, ri) {
 
 // ── Feedback widget ───────────────────────────────────────────────────────────
 let _feedbackVote = null;
+let _feedbackCats = [];
 
 function showFeedbackWidget() {
   if (localStorage.getItem('oura_edge_feedback_done')) return;
-  setTimeout(() => document.getElementById('feedbackWidget').classList.add('visible'), 3000);
+  setTimeout(() => document.getElementById('feedbackWidget').classList.add('visible'), 4000);
 }
 
 function dismissFeedback() {
   document.getElementById('feedbackWidget').classList.remove('visible');
+  localStorage.setItem('oura_edge_feedback_done', '1');
 }
 
 function selectVote(vote) {
@@ -2309,23 +2324,61 @@ function selectVote(vote) {
   document.getElementById('fbUp').classList.toggle('selected-up',   vote === 'up');
   document.getElementById('fbDown').classList.toggle('selected-down', vote === 'down');
   document.getElementById('fbCommentWrap').style.display = 'block';
+  // Scroll widget into view on mobile
+  document.getElementById('feedbackWidget').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function toggleCat(el, cat) {
+  el.classList.toggle('selected');
+  if (_feedbackCats.includes(cat)) {
+    _feedbackCats = _feedbackCats.filter(c => c !== cat);
+  } else {
+    _feedbackCats.push(cat);
+  }
+}
+
+function updateCharCount() {
+  const ta  = document.getElementById('fbComment');
+  const el  = document.getElementById('fbCharCount');
+  const rem = 500 - ta.value.length;
+  el.textContent = rem;
+  el.classList.toggle('near-limit', rem < 80);
 }
 
 async function submitFeedback() {
   if (!_feedbackVote) return;
+  const btn     = document.getElementById('fbSubmit');
   const comment = document.getElementById('fbComment').value.trim();
+  const email   = document.getElementById('fbEmail').value.trim();
+  btn.disabled  = true;
+  btn.textContent = 'Sending…';
   try {
     await fetch('/api/feedback', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({vote: _feedbackVote, comment})
+      body: JSON.stringify({
+        vote:       _feedbackVote,
+        categories: _feedbackCats,
+        comment,
+        email
+      })
     });
   } catch(e) {}
   localStorage.setItem('oura_edge_feedback_done', '1');
-  document.getElementById('fbMain').style.display  = 'none';
+  document.getElementById('fbMain').style.display   = 'none';
   document.getElementById('fbThanks').style.display = 'block';
-  setTimeout(() => document.getElementById('feedbackWidget').classList.remove('visible'), 2000);
-  track('feedback_submitted', {vote: _feedbackVote, has_comment: !!comment});
+  // Personalise thanks message
+  const msg = _feedbackVote === 'up'
+    ? 'Glad it\'s helping — share it with a friend! 🙌'
+    : 'We\'ll use your notes to make it better. 🛠️';
+  document.getElementById('fbThanksMsg').textContent = msg;
+  setTimeout(() => document.getElementById('feedbackWidget').classList.remove('visible'), 3500);
+  track('feedback_submitted', {vote: _feedbackVote, categories: _feedbackCats, has_comment: !!comment, has_email: !!email});
+}
+
+// Allow re-opening feedback from a button (if we add one later)
+function openFeedback() {
+  document.getElementById('feedbackWidget').classList.add('visible');
 }
 
 // ── Stats (user count on login screen) ────────────────────────────────────────
@@ -2351,18 +2404,45 @@ fetchStats();
 <!-- Feedback Widget -->
 <div class="feedback-widget" id="feedbackWidget">
   <button class="fb-dismiss" onclick="dismissFeedback()" title="Dismiss">×</button>
+
   <div id="fbMain">
-    <div class="fb-label">Rate Oura Edge</div>
+    <!-- Step 1: Vote -->
+    <div class="fb-label">How's Oura Edge?</div>
     <div class="fb-btns">
-      <button class="fb-btn" id="fbUp"   onclick="selectVote('up')"   title="Helpful">👍</button>
-      <button class="fb-btn" id="fbDown" onclick="selectVote('down')" title="Not helpful">👎</button>
+      <button class="fb-btn" id="fbUp"   onclick="selectVote('up')"   title="Loving it">👍 Loving it</button>
+      <button class="fb-btn" id="fbDown" onclick="selectVote('down')" title="Needs work">👎 Needs work</button>
     </div>
+
+    <!-- Step 2: Category + Notes (shown after vote) -->
     <div id="fbCommentWrap" style="display:none">
-      <textarea class="fb-comment" id="fbComment" rows="2" maxlength="280" placeholder="Optional: what could be better?"></textarea>
-      <button class="fb-submit" onclick="submitFeedback()">Send feedback →</button>
+      <hr class="fb-divider">
+      <div class="fb-label" style="margin-bottom:6px">What's on your mind?</div>
+      <div class="fb-categories" id="fbCategories">
+        <button class="fb-cat" onclick="toggleCat(this,'bug')">🐛 Bug</button>
+        <button class="fb-cat" onclick="toggleCat(this,'feature')">💡 Feature idea</button>
+        <button class="fb-cat" onclick="toggleCat(this,'accuracy')">📊 Data accuracy</button>
+        <button class="fb-cat" onclick="toggleCat(this,'ux')">🎨 Design / UX</button>
+        <button class="fb-cat" onclick="toggleCat(this,'general')">⭐ General</button>
+      </div>
+
+      <div class="fb-note-wrap">
+        <textarea class="fb-comment" id="fbComment" rows="3" maxlength="500"
+          placeholder="Tell us more — the more detail the better..."
+          oninput="updateCharCount()"></textarea>
+        <span class="fb-char" id="fbCharCount">500</span>
+      </div>
+
+      <input class="fb-email" id="fbEmail" type="email" maxlength="120"
+        placeholder="Email (optional — for follow-up)" autocomplete="email">
+
+      <button class="fb-submit" id="fbSubmit" onclick="submitFeedback()">Send feedback →</button>
     </div>
   </div>
-  <div class="fb-thanks" id="fbThanks" style="display:none">✅ Thanks for the feedback!</div>
+
+  <div id="fbThanks" style="display:none">
+    <div class="fb-thanks">✅ Feedback received!</div>
+    <div class="fb-thanks-sub" id="fbThanksMsg">Thanks — we read every note.</div>
+  </div>
 </div>
 
 <!-- Changelog Modal -->

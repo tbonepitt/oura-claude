@@ -1177,18 +1177,55 @@ def stats_endpoint():
 
 @app.route("/api/feedback", methods=["POST"])
 def feedback_endpoint():
-    """Store a thumbs up/down vote and optional comment."""
-    data    = request.get_json(silent=True) or {}
-    vote    = data.get("vote", "")
-    comment = str(data.get("comment", ""))[:280].strip()
+    """Store a thumbs up/down vote with categories, notes, and optional email."""
+    data       = request.get_json(silent=True) or {}
+    vote       = data.get("vote", "")
+    comment    = str(data.get("comment", ""))[:500].strip()
+    email      = str(data.get("email", ""))[:120].strip()
+    categories = data.get("categories", [])
+    if not isinstance(categories, list):
+        categories = []
+    # Validate
     if vote not in ("up", "down"):
         return jsonify({"error": "invalid vote"}), 400
+    valid_cats = {"bug", "feature", "accuracy", "ux", "general"}
+    categories = [c for c in categories if c in valid_cats][:5]
+    # Increment vote counter
     kv(["INCR", f"oura_edge:thumbs_{vote}"])
+    # Always store the full entry (even without comment — captures category tags)
+    entry = json.dumps({
+        "vote":       vote,
+        "categories": categories,
+        "comment":    comment,
+        "email":      email,
+        "ts":         str(date.today())
+    })
+    kv(["LPUSH", "oura_edge:feedback", entry])
+    kv(["LTRIM", "oura_edge:feedback", 0, 499])   # keep last 500 entries
+    # Legacy comments list (for backward compat)
     if comment:
-        entry = json.dumps({"vote": vote, "comment": comment, "ts": str(date.today())})
         kv(["LPUSH", "oura_edge:comments", entry])
-        kv(["LTRIM", "oura_edge:comments", 0, 299])  # keep last 300
+        kv(["LTRIM", "oura_edge:comments", 0, 299])
     return jsonify({"ok": True})
+
+
+@app.route("/api/feedback/summary")
+def feedback_summary():
+    """Admin: return vote counts + recent feedback entries."""
+    secret = request.headers.get("X-Admin-Secret", "")
+    admin_secret = os.environ.get("ADMIN_SECRET", "")
+    if not admin_secret or secret != admin_secret:
+        return jsonify({"error": "unauthorized"}), 401
+    up    = int(kv(["GET", "oura_edge:thumbs_up"])   or 0)
+    down  = int(kv(["GET", "oura_edge:thumbs_down"]) or 0)
+    raw   = kv(["LRANGE", "oura_edge:feedback", 0, 99]) or []
+    entries = []
+    for r in raw:
+        try:
+            entries.append(json.loads(r))
+        except Exception:
+            pass
+    return jsonify({"thumbs_up": up, "thumbs_down": down, "total": up + down, "entries": entries})
 
 @app.route("/api/demo")
 def demo_endpoint():
