@@ -352,6 +352,19 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 /* Demo banner */
 .demo-banner{background:linear-gradient(90deg,rgba(99,102,241,.15),rgba(168,85,247,.15));border-bottom:1px solid rgba(99,102,241,.3);padding:8px 28px;text-align:center;font-size:13px;display:none}
 .demo-banner span{color:var(--accent);font-weight:600}
+.freshness-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:6px 28px;font-size:11px;color:var(--muted);display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.freshness-bar.visible{display:flex}
+.freshness-chip{display:inline-flex;align-items:center;gap:5px}
+.freshness-chip .dot-fresh{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.changelog-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center}
+.changelog-modal.open{display:flex}
+.changelog-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto}
+.changelog-box h3{font-size:18px;font-weight:800;margin:0 0 4px}
+.changelog-box .cl-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+.changelog-ver{font-size:13px;font-weight:700;color:var(--accent);margin:16px 0 6px}
+.changelog-ver:first-of-type{margin-top:0}
+.changelog-box ul{margin:0;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.8}
+.changelog-box ul li strong{color:var(--text)}
 .demo-exit-btn{background:var(--accent);border:none;border-radius:6px;color:#fff;padding:3px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-left:12px;transition:opacity .15s}
 .demo-exit-btn:hover{opacity:.8}
 </style>
@@ -363,7 +376,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <div class="setup-card">
     <div class="setup-logo">🩺</div>
     <h2 class="setup-title">Oura Edge</h2>
-    <p class="setup-sub">Predict your readiness 7 days out, decode what drives your deep sleep, catch crash days before they happen — all from your own Oura data.</p>
+    <p class="setup-sub">Your 24-hour sleep & recovery intelligence. Personalized correlations, 7-day readiness forecasts, sleep debt tracking, and anomaly detection — all from your own Oura data, updated daily.</p>
 
     <!-- Auth method tabs -->
     <div class="auth-tabs">
@@ -413,7 +426,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 </div>
 
 <header>
-  <h1><span id="headerName">Your</span> Oura <span>Edge</span> <span style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle">v4.0</span></h1>
+  <h1><span id="headerName">Your</span> Oura <span>Edge</span> <span onclick="openChangelog()" style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle;cursor:pointer" title="What's new in v4.0">v4.0 ✨</span></h1>
   <div class="header-right">
     <div class="dot"></div>
     <div class="date-badge" id="dateLabel">Loading…</div>
@@ -459,24 +472,33 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 </div>
 
 <nav>
-  <div class="tab active" data-page="today">Today</div>
+  <div class="tab active" data-page="insights">Insights</div>
+  <div class="tab" data-page="today">Overview</div>
   <div class="tab" data-page="forecast">7-Day Forecast</div>
   <div class="tab" data-page="trends">Trends</div>
   <div class="tab" data-page="anomalies">Anomalies <span id="anomalyCount"></span></div>
   <div class="tab" data-page="sleep-science">Sleep Science</div>
   <div class="tab" data-page="vitals">Vitals</div>
-  <div class="tab" data-page="insights">Insights</div>
   <div class="tab" data-page="profile">Profile</div>
 </nav>
 
+<!-- Data freshness bar -->
+<div id="freshnessBar" class="freshness-bar">
+  <div style="display:flex;gap:16px;flex-wrap:wrap">
+    <span class="freshness-chip"><span class="dot-fresh" style="background:#22c55e"></span><span id="freshSleep">Sleep & Readiness: —</span></span>
+    <span class="freshness-chip"><span class="dot-fresh" style="background:#f59e0b" id="freshActivityDot"></span><span id="freshActivity">Activity: —</span></span>
+  </div>
+  <span style="opacity:.5">Data updates after your ring syncs each morning</span>
+</div>
+
 <main>
-  <div id="today" class="page active"></div>
+  <div id="insights" class="page active"></div>
+  <div id="today" class="page"></div>
   <div id="forecast" class="page"></div>
   <div id="trends" class="page"></div>
   <div id="anomalies" class="page"></div>
   <div id="sleep-science" class="page"></div>
   <div id="vitals" class="page"></div>
-  <div id="insights" class="page"></div>
   <div id="profile" class="page"></div>
 </main>
 
@@ -491,7 +513,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <span class="sep">·</span>
   <a href="https://github.com/tbonepitt/oura-claude" target="_blank">GitHub ↗</a>
   <span class="sep">·</span>
-  Real-time data from the <a href="https://cloud.ouraring.com/v2/docs" target="_blank">Oura API</a>
+  Daily insights powered by the <a href="https://cloud.ouraring.com/v2/docs" target="_blank">Oura API</a>
 </footer>
 
 
@@ -586,6 +608,23 @@ function render(d){
 
   document.getElementById('dateLabel').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 
+  // ── Freshness bar ──────────────────────────────────────────────────────────
+  if (data_dates) {
+    const fmtDD = d => {
+      if (!d) return 'Unknown';
+      const dt = new Date(d + 'T00:00:00');
+      const today = new Date(); today.setHours(0,0,0,0);
+      const diff = Math.round((today - dt) / 86400000);
+      if (diff === 0) return 'Today';
+      if (diff === 1) return 'Yesterday';
+      return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    };
+    document.getElementById('freshSleep').textContent    = `Sleep & Readiness: ${fmtDD(data_dates.sleep)}`;
+    document.getElementById('freshActivity').textContent = `Activity: ${fmtDD(data_dates.activity)}${data_dates.activity_is_yesterday ? ' (1-day lag)' : ''}`;
+    document.getElementById('freshActivityDot').style.background = data_dates.activity_is_yesterday ? '#f59e0b' : '#22c55e';
+    document.getElementById('freshnessBar').classList.add('visible');
+  }
+
   // Anomaly count badge
   if(anomalies.length){
     document.getElementById('anomalyCount').innerHTML=`<span style="background:rgba(239,68,68,.2);color:#ef4444;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">${anomalies.length}</span>`;
@@ -611,7 +650,7 @@ function render(d){
         </div>
       </div>
     </div>
-    <div class="ring-live"><div class="dot" style="width:7px;height:7px"></div> Live sync</div>
+    <div class="ring-live"><div class="dot" style="width:7px;height:7px"></div> Updated daily</div>
   </div>
   <div class="g4">
     <div class="card score-card">
@@ -677,15 +716,7 @@ function render(d){
     </div>
     <div class="card"><div class="card-title">Sleep Contributors</div><div style="height:220px"><canvas id="chartContrib"></canvas></div></div>
   </div>
-  ${tonightCardHTML({...d.tonight_card, sleep_recommendation: sleep_recommendation||''}, ci)}
-
-  ${recoveryIntelHTML(sleep_debt, debt_log, ri, d.tonight_card?.optimal_bed)}
-  ${weeklyPatternsHTML(dow, ri)}
-
-  <div class="card">
-    <div class="card-title">📅 60-Day Readiness Heatmap</div>
-    ${heatmapHTML(heatmap)}
-  </div>`;
+  ${tonightCardHTML({...d.tonight_card, sleep_recommendation: sleep_recommendation||''}, ci)}`;
 
   // Today charts
   charts.ringSleep    = makeRing('ringSleep',    latest.sleep,    scoreColor(latest.sleep));
@@ -758,7 +789,7 @@ function render(d){
   // ── TRENDS PAGE ────────────────────────────────────────────────────────────
   document.getElementById('trends').innerHTML=`
   <div class="full card">
-    <div class="card-title">HRV Balance <span class="badge live">60 days</span></div>
+    <div class="card-title">HRV Balance <span class="badge new">60 days</span></div>
     <div style="height:180px"><canvas id="chartHRV"></canvas></div>
     <div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--surface2);font-size:13px">
       ${hrv_delta>2?`✅ HRV improved <strong>+${hrv_delta}</strong> pts over 60 days — real cardiovascular adaptation.`:hrv_delta<-2?`⚠️ HRV declined <strong>${hrv_delta}</strong> pts — watch for overtraining.`:`→ HRV stable (Δ${hrv_delta>0?'+':''}${hrv_delta}).`}
@@ -778,7 +809,7 @@ function render(d){
   </div>
 
   <div class="full card">
-    <div class="card-title">🏋️ Workout Activity <span class="badge live">60 days</span></div>
+    <div class="card-title">🏋️ Workout Activity <span class="badge new">60 days</span></div>
     <div style="height:150px"><canvas id="chartWorkoutMin"></canvas></div>
     <div style="margin-top:10px;font-size:12px;color:var(--muted)">
       ${workouts?.total_active_days||0} active days · ${workouts?.total_active_minutes?.toLocaleString()||0} total active minutes tracked
@@ -858,14 +889,23 @@ function render(d){
 
   // ── INSIGHTS PAGE ──────────────────────────────────────────────────────────
   document.getElementById('insights').innerHTML=`
+  <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;font-size:13px;color:var(--muted);line-height:1.6">
+    <strong style="color:var(--text)">Your Oura Edge</strong> — 24-hour sleep & recovery intelligence built from your personal data patterns, not generic advice. Data reflects your most recent Oura sync.
+  </div>
+
+  ${recoveryIntelHTML(sleep_debt, debt_log, ri, d.tonight_card?.optimal_bed)}
+  ${weeklyPatternsHTML(dow, ri)}
+
   <div class="g2">
     <div class="card">
       <div class="card-title">🧬 Your Personal Discoveries</div>
       ${renderCorrelations(correlations, ci)}
     </div>
     <div class="card">
-      <div class="card-title">📝 Lifestyle Experiment Results</div>
-      <div style="color:var(--muted);font-size:13px;padding:20px 0;line-height:1.8">Unlock personalized habit insights by connecting additional data sources — <strong style="color:var(--text)">coming soon</strong>.</div>
+      <div class="card-title">🔮 Tomorrow's Readiness</div>
+      <div style="font-size:60px;font-weight:900;letter-spacing:-3px;color:${scoreColor(prediction)};line-height:1;margin:8px 0">${prediction}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Predicted from your 60-day personal model</div>
+      ${predRec(prediction)}
     </div>
   </div>
   <div class="full card">
@@ -873,6 +913,14 @@ function render(d){
     ${heatmapHTML(heatmap)}
     <div style="margin-top:16px;font-size:13px;color:var(--muted)">Each cell = one day. Hover for the score. ${heatmap.filter(h=>h.score>=85).length} optimal days, ${heatmap.filter(h=>h.score&&h.score<65).length} poor days in the last 60.</div>
   </div>`;
+
+  // Insights page charts
+  if (debt_log.length && document.getElementById('chartDebtRI')) {
+    const dv = debt_log.map(x=>x.cumulative);
+    charts.debtRI = makeLine('chartDebtRI', debt_log.map(x=>shortDate(x.date)), [
+      {label:'Cumulative debt (hrs)',data:dv,borderColor:dv[dv.length-1]>0?'#ef4444':'#22c55e',backgroundColor:dv[dv.length-1]>0?'rgba(239,68,68,.08)':'rgba(34,197,94,.08)',fill:true}
+    ],{legend:false,maxTicks:10});
+  }
 
   // ── PROFILE PAGE ──────────────────────────────────────────────────────────
   renderProfile(d.user, d.ring, ri);
@@ -1021,7 +1069,7 @@ function recoveryIntelHTML(debt, log, ri, optimalBed){
 
     <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
       <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">30-Day Debt Chart</div>
-      <div style="height:120px"><canvas id="chartDebt"></canvas></div>
+      <div style="height:120px"><canvas id="chartDebtRI"></canvas></div>
     </div>
   </div>`;
 }
@@ -1816,6 +1864,13 @@ function closeModal() {
   document.getElementById('signOutModal').classList.remove('open');
 }
 
+function openChangelog() {
+  document.getElementById('changelogModal').classList.add('open');
+}
+function closeChangelog() {
+  document.getElementById('changelogModal').classList.remove('open');
+}
+
 function doSignOut() {
   track('signed_out');
   localStorage.removeItem(STORAGE_KEY);
@@ -2211,5 +2266,50 @@ function renderProfile(user, ring, ri) {
 
 loadData();
 </script>
+
+<!-- Changelog Modal -->
+<div class="changelog-modal" id="changelogModal" onclick="if(event.target===this)closeChangelog()">
+  <div class="changelog-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <h3>What's New</h3>
+      <button onclick="closeChangelog()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">&times;</button>
+    </div>
+    <div class="cl-sub">Release history for Oura Edge</div>
+
+    <div class="changelog-ver">v4.0 — March 2026</div>
+    <ul>
+      <li><strong>Repositioned as 24-hour intelligence</strong> — Oura Edge is now honest about data timing. The API updates daily after your ring syncs, not in real-time.</li>
+      <li><strong>Insights tab is now the landing page</strong> — Your personalized correlations and deep sleep decoder are more valuable than raw daily scores.</li>
+      <li><strong>Recovery Intelligence</strong> — Personal sleep target, debt payback plan, recovery rate, trajectory badges, and personal records (readiness, HRV, deep sleep).</li>
+      <li><strong>Weekly Sleep Patterns</strong> — Bar chart of sleep score by day of week, best/worst day highlighted.</li>
+      <li><strong>Sleep-stage HR chart</strong> — Heart rate during sleep colored by sleep stage (deep/REM/light/awake).</li>
+      <li><strong>Data freshness bar</strong> — Shows exactly when each data type was last synced so you always know what's current.</li>
+      <li><strong>Profile tab</strong> — Personal info, ring details, and personal records in one place.</li>
+      <li><strong>Smart bedtime</strong> — "Get In Bed By" now accounts for your average time to fall asleep.</li>
+      <li><strong>Single bedtime source of truth</strong> — Tonight's Sleep Plan and Recovery Intelligence no longer show conflicting times.</li>
+      <li><strong>Name personalization</strong> — Dashboard title uses your name derived from your Oura account email.</li>
+      <li><strong>Browser token saving</strong> — Setup now prompts you to let your browser save your token so you don't re-enter it.</li>
+    </ul>
+
+    <div class="changelog-ver">v3.0 — February 2026</div>
+    <ul>
+      <li><strong>Sleep Science tab</strong> — Deep sleep decoder with personalized findings and best/worst night analysis.</li>
+      <li><strong>7-Day Forecast</strong> — Personal readiness predictions built from your 60-day history.</li>
+      <li><strong>Anomaly detection</strong> — Automatically flags unusual sleep and readiness drops with likely causes.</li>
+      <li><strong>Vitals tab</strong> — SpO2, VO2 max, stress/recovery balance, and cardio age.</li>
+      <li><strong>Resilience score</strong> — Sleep recovery, daytime recovery, and stress contribution breakdown.</li>
+      <li><strong>OAuth support</strong> — Sign in with Oura (coming soon).</li>
+    </ul>
+
+    <div class="changelog-ver">v2.0 — January 2026</div>
+    <ul>
+      <li>Tonight's Sleep Plan with personalized bedtime recommendations.</li>
+      <li>Sleep debt tracking with 30-day log and payback estimate.</li>
+      <li>Correlation insights — which lifestyle factors actually affect your sleep.</li>
+      <li>60-day readiness heatmap.</li>
+    </ul>
+  </div>
+</div>
+
 </body>
 </html>
