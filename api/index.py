@@ -45,6 +45,16 @@ def pearson(xs, ys):
     den = math.sqrt(sum((x-mx)**2 for x,y in pairs) * sum((y-my)**2 for x,y in pairs))
     return round(num/den, 3) if den else None
 
+def linreg(xs, ys):
+    """Return slope and intercept of least-squares line, or None if insufficient data."""
+    pairs = [(x,y) for x,y in zip(xs,ys) if x is not None and y is not None]
+    if len(pairs) < 8: return None
+    n = len(pairs); mx = sum(p[0] for p in pairs)/n; my = sum(p[1] for p in pairs)/n
+    ss_xx = sum((x-mx)**2 for x,y in pairs)
+    if ss_xx == 0: return None
+    slope = sum((x-mx)*(y-my) for x,y in pairs) / ss_xx
+    return {"slope": slope, "intercept": my - slope * mx}
+
 def clamp(v, lo, hi): return max(lo, min(hi, v))
 
 # ── Sleep Science ──────────────────────────────────────────────────────────────
@@ -471,6 +481,106 @@ def build_data(token):
            "rest_ready":pearson(rest_series,ready_scores),
            "workout_ready":workout_ready_corr}
 
+    # Vitals latest — needed by both insights block and return
+    spo2_series    = [spo2_map.get(d,{}).get("spo2_percentage",{}) or {} for d in days]
+    spo2_avg       = [s.get("average") for s in spo2_series]
+    spo2_bdi       = [spo2_map.get(d,{}).get("breathing_disturbance_index") for d in days]
+    stress_high    = [round((stress_map.get(d,{}).get("stress_high") or 0)/60) for d in days]
+    recovery_high  = [round((stress_map.get(d,{}).get("recovery_high") or 0)/60) for d in days]
+    stress_summary = [stress_map.get(d,{}).get("day_summary") for d in days]
+    cardio_age     = [cardio_map.get(d,{}).get("vascular_age") for d in days]
+    vo2_series     = [vo2_map.get(d,{}).get("vo2_max") for d in days]
+    latest_spo2    = next((v for v in reversed(spo2_avg) if v is not None), None)
+    latest_bdi     = next((v for v in reversed(spo2_bdi) if v is not None), None)
+    latest_stress  = stress_map.get(days[-1],{}) if days else {}
+    latest_cardio  = next((v for v in reversed(cardio_age) if v is not None), None)
+    latest_vo2     = next((v for v in reversed(vo2_series) if v is not None), None)
+
+    # ── Correlation Insights — translate numbers to plain English ─────────────
+    STEP_THRESHOLD = 8000
+    steps_deep_pairs = [(s,d) for s,d in zip(steps_series,deep_series) if s is not None and d is not None]
+    high_step_deep = mean([d for s,d in steps_deep_pairs if s >= STEP_THRESHOLD])
+    low_step_deep  = mean([d for s,d in steps_deep_pairs if s < STEP_THRESHOLD])
+    steps_deep_reg = linreg(steps_series, deep_series)
+    steps_per_1k   = round(steps_deep_reg["slope"]*1000,1) if steps_deep_reg else None
+    today_steps    = latest_act.get("steps") or 0
+    steps_gap      = max(0, STEP_THRESHOLD - today_steps)
+
+    sr_reg            = linreg(sleep_scores[:-1], ready_scores[1:])
+    sleep_ready_per10 = round(sr_reg["slope"]*10,1) if sr_reg else None
+
+    hrv_reg           = linreg(hrv_series, sleep_scores)
+    hrv_sleep_per10   = round(hrv_reg["slope"]*10,1) if hrv_reg else None
+
+    wo_high = mean([r for a,r in zip(workout_active_days[:-1],ready_scores[1:]) if a==1 and r is not None])
+    wo_low  = mean([r for a,r in zip(workout_active_days[:-1],ready_scores[1:]) if a==0 and r is not None])
+    wo_diff = round(wo_high - wo_low, 1) if (wo_high and wo_low) else None
+
+    temp_elev_sleep = mean([s for t,s in zip(temp_series,sleep_scores) if t is not None and t>=0.5 and s is not None])
+    temp_norm_sleep = mean([s for t,s in zip(temp_series,sleep_scores) if t is not None and t< 0.5 and s is not None])
+    temp_diff       = round(temp_elev_sleep - temp_norm_sleep,1) if (temp_elev_sleep and temp_norm_sleep) else None
+
+    user_age  = user_info.get("age") if isinstance(user_info,dict) else None
+    cardio_gap = round(user_age - latest_cardio) if (user_age and latest_cardio) else None
+
+    stress_streak = 0
+    for d in reversed(days):
+        if stress_map.get(d,{}).get("day_summary")=="stressful": stress_streak+=1
+        else: break
+
+    sh_today = latest_stress.get("stress_high") or 0
+    rh_today = latest_stress.get("recovery_high") or 0
+    tt = sh_today + rh_today
+    stress_ratio_pct = round(rh_today/tt*100) if tt>0 else None
+    typical_ratios = [rh/(sh+rh)*100 for d in days[-30:]
+                      for sh,rh in [(stress_map.get(d,{}).get("stress_high") or 0,
+                                     stress_map.get(d,{}).get("recovery_high") or 0)]
+                      if sh+rh>0]
+    typical_stress_ratio = round(mean(typical_ratios)) if typical_ratios else None
+
+    # readiness drop on consecutive stress days
+    stress_ready_impact = None
+    stress_days_idx = [i for i,d in enumerate(days[:-1]) if stress_map.get(d,{}).get("day_summary")=="stressful"]
+    if len(stress_days_idx) >= 3:
+        stress_next = [ready_scores[i+1] for i in stress_days_idx if ready_scores[i+1] is not None]
+        non_stress_idx = [i for i,d in enumerate(days[:-1]) if stress_map.get(d,{}).get("day_summary")!="stressful"]
+        non_stress_next = [ready_scores[i+1] for i in non_stress_idx if ready_scores[i+1] is not None]
+        if stress_next and non_stress_next:
+            stress_ready_impact = round(mean(stress_next) - mean(non_stress_next), 1)
+
+    correlation_insights = {
+        "steps_deep": {
+            "high_avg_min": round(high_step_deep) if high_step_deep else None,
+            "low_avg_min":  round(low_step_deep)  if low_step_deep  else None,
+            "threshold":    STEP_THRESHOLD,
+            "diff_min":     round(high_step_deep - low_step_deep) if (high_step_deep and low_step_deep) else None,
+            "per_1k":       steps_per_1k,
+            "today_steps":  today_steps,
+            "steps_gap":    steps_gap,
+        },
+        "sleep_ready": {"per_10": sleep_ready_per10, "last_sleep": latest_sleep.get("score")},
+        "workout_ready": {
+            "workout_avg": round(wo_high) if wo_high else None,
+            "rest_avg":    round(wo_low)  if wo_low  else None,
+            "diff":        wo_diff,
+        },
+        "hrv_sleep": {"per_10": hrv_sleep_per10, "latest_hrv": latest_ready.get("contributors",{}).get("hrv_balance")},
+        "temp_sleep": {
+            "elevated_avg": round(temp_elev_sleep) if temp_elev_sleep else None,
+            "normal_avg":   round(temp_norm_sleep)  if temp_norm_sleep  else None,
+            "diff":         temp_diff,
+            "latest_temp":  latest_ready.get("temperature_deviation"),
+        },
+        "cardio": {"user_age": user_age, "vascular_age": latest_cardio, "gap": cardio_gap},
+        "stress": {
+            "streak":       stress_streak,
+            "ratio_pct":    stress_ratio_pct,
+            "typical_pct":  typical_stress_ratio,
+            "summary":      latest_stress.get("day_summary"),
+            "ready_impact": stress_ready_impact,
+        },
+    }
+
     r_s=corrs["sleep_ready"] or 0; r_h=pearson(hrv_series[:n-1],ready_scores[1:n]) or 0
     tw=abs(r_s)+abs(r_h)+0.01
     pred=round((mean(ready_scores) or 78)*0.4+latest_sleep.get("score",75)*abs(r_s)/tw*0.35+
@@ -492,23 +602,6 @@ def build_data(token):
     heatmap=[{"date":d,"score":r_map.get(d,{}).get("score")} for d in days]
     first_name=user_info.get("first_name","") if isinstance(user_info,dict) else ""
 
-    # Vitals series (keyed by day, sparse — not all days have all metrics)
-    spo2_series    = [spo2_map.get(d,{}).get("spo2_percentage",{}) or {} for d in days]
-    spo2_avg       = [s.get("average") for s in spo2_series]
-    spo2_bdi       = [spo2_map.get(d,{}).get("breathing_disturbance_index") for d in days]
-    stress_high    = [round((stress_map.get(d,{}).get("stress_high") or 0)/60) for d in days]
-    recovery_high  = [round((stress_map.get(d,{}).get("recovery_high") or 0)/60) for d in days]
-    stress_summary = [stress_map.get(d,{}).get("day_summary") for d in days]
-    cardio_age     = [cardio_map.get(d,{}).get("vascular_age") for d in days]
-    vo2_series     = [vo2_map.get(d,{}).get("vo2_max") for d in days]
-
-    # Latest vitals values
-    latest_spo2    = next((v for v in reversed(spo2_avg) if v is not None), None)
-    latest_bdi     = next((v for v in reversed(spo2_bdi) if v is not None), None)
-    latest_stress  = stress_map.get(days[-1],{}) if days else {}
-    latest_cardio  = next((v for v in reversed(cardio_age) if v is not None), None)
-    latest_vo2     = next((v for v in reversed(vo2_series) if v is not None), None)
-
     return {"generated":str(today),"user":{"first_name":first_name},"days":days,
         "ring": ring_display,
         "scores":{"sleep":sleep_scores,"ready":ready_scores,"activity":act_scores,
@@ -528,7 +621,8 @@ def build_data(token):
         "prediction":pred,"hrv_delta":hrv_delta,
         "dow":{"labels":DOW,"sleep":[mean(dow_sleep[i]) for i in range(7)],
                "ready":[mean(dow_ready[i]) for i in range(7)],"steps":[mean(dow_steps[i]) for i in range(7)]},
-        "correlations":corrs,"resting_hr":resting_hr_timeline[-200:],"checkin_insights":[],
+        "correlations":corrs,"correlation_insights":correlation_insights,
+        "resting_hr":resting_hr_timeline[-200:],"checkin_insights":[],
         "forecast":forecast,"anomalies":anomalies,"sleep_debt":sleep_debt,"debt_log":debt_log,
         "heatmap":heatmap,"hypnogram":hypnogram,"deep_decoder":deep_decoder,"tonight_card":tonight_card,
         "sleep_recommendation": sleep_recommendation,
@@ -781,6 +875,15 @@ def generate_demo_data():
                 "ready":[mean(dow_ready[i]) for i in range(7)],
                 "steps":[mean(dow_steps[i]) for i in range(7)]},
         "correlations": corrs,
+        "correlation_insights": {
+            "steps_deep":   {"high_avg_min":82,"low_avg_min":56,"threshold":8000,"diff_min":26,"per_1k":5.2,"today_steps":6100,"steps_gap":1900},
+            "sleep_ready":  {"per_10":3.8,"last_sleep":78},
+            "workout_ready":{"workout_avg":77,"rest_avg":72,"diff":5.0},
+            "hrv_sleep":    {"per_10":4.1,"latest_hrv":71},
+            "temp_sleep":   {"elevated_avg":61,"normal_avg":74,"diff":-13.0,"latest_temp":0.1},
+            "cardio":       {"user_age":38,"vascular_age":32,"gap":6},
+            "stress":       {"streak":0,"ratio_pct":62,"typical_pct":55,"summary":"normal","ready_impact":-8.4},
+        },
         "resting_hr": resting_hr, "checkin_insights": [],
         "forecast": forecast, "anomalies": anomalies,
         "sleep_debt": sleep_debt, "debt_log": debt_log,

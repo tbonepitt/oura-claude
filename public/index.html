@@ -199,6 +199,7 @@ canvas{display:block}
 .ring-card{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .ring-card-left{display:flex;align-items:center;gap:14px}
 .ring-emoji{font-size:28px;line-height:1}
+.ring-img{width:52px;height:52px;object-fit:contain;border-radius:8px;filter:drop-shadow(0 2px 8px rgba(99,102,241,.35))}
 .ring-model{font-size:16px;font-weight:800;letter-spacing:-.3px}
 .ring-details{font-size:12px;color:var(--muted);margin-top:3px}
 .ring-details span{margin-right:12px}
@@ -533,6 +534,11 @@ function heatmapColor(s){
 let globalData=null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function ringImgUrl(color){
+  const m={'silver':'silver','black':'black','brushed silver':'brushed-silver','stealth':'stealth','gold':'gold','rose gold':'rose-gold'};
+  const slug=m[(color||'').toLowerCase().trim()]||'silver';
+  return`https://ourahealth.imgix.net/blue-sky/pop/gen4/finishes-carousel-slide-${slug}.png`;
+}
 function resLevelColor(level){
   return {limited:'#ef4444',adequate:'#f59e0b',solid:'#3b82f6',strong:'#22c55e',exceptional:'#a855f7'}[level]||'#6b7280';
 }
@@ -551,7 +557,7 @@ function fmtActivity(act){
 function render(d){
   destroyAll();
   globalData=d;
-  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,checkin_insights,forecast,anomalies,sleep_debt,debt_log,heatmap,ring,sleep_recommendation,resilience,workouts}=d;
+  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,correlation_insights:ci,checkin_insights,forecast,anomalies,sleep_debt,debt_log,heatmap,ring,sleep_recommendation,resilience,workouts}=d;
   const N30=30;
   const labels30=shortDates(days,N30);
   const allLabels=days.map(shortDate);
@@ -574,7 +580,7 @@ function render(d){
   document.getElementById('today').innerHTML=`
   <div class="ring-card">
     <div class="ring-card-left">
-      <div class="ring-emoji">💍</div>
+      <img class="ring-img" src="${ringImgUrl(ring?.color)}" alt="Oura Ring" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span style=\'font-size:28px\'>💍</span>')" />
       <div>
         <div class="ring-model">Oura ${ringModel}${ring?.color?' · '+ring.color:''}</div>
         <div class="ring-details">
@@ -646,7 +652,7 @@ function render(d){
     </div>
     <div class="card"><div class="card-title">Sleep Contributors</div><div style="height:220px"><canvas id="chartContrib"></canvas></div></div>
   </div>
-  ${tonightCardHTML({...d.tonight_card, sleep_recommendation: sleep_recommendation||''})}
+  ${tonightCardHTML({...d.tonight_card, sleep_recommendation: sleep_recommendation||''}, ci)}
 
   <div class="g2">
     <div class="card">
@@ -826,14 +832,14 @@ function render(d){
   renderSleepScience(d.hypnogram, d.deep_decoder);
 
   // ── VITALS PAGE ───────────────────────────────────────────────────────────
-  renderVitals(d.vitals, d.days, d.user, d.resilience);
+  renderVitals(d.vitals, d.days, d.user, d.resilience, ci);
 
   // ── INSIGHTS PAGE ──────────────────────────────────────────────────────────
   document.getElementById('insights').innerHTML=`
   <div class="g2">
     <div class="card">
-      <div class="card-title">🧬 Your Personal Correlations</div>
-      ${renderCorrelations(correlations)}
+      <div class="card-title">🧬 Your Personal Discoveries</div>
+      ${renderCorrelations(correlations, ci)}
     </div>
     <div class="card">
       <div class="card-title">📝 Lifestyle Experiment Results</div>
@@ -924,30 +930,89 @@ function trainingDays(forecast){
   </div>`;
 }
 
-function renderCorrelations(corrs){
-  const items=[
-    {label:'Steps → next night deep sleep',      val:corrs.steps_deep},
-    {label:'Sleep score → next day readiness',   val:corrs.sleep_ready},
-    {label:'Active calories → deep sleep',       val:corrs.cal_deep},
-    {label:'HRV balance → sleep quality',        val:corrs.hrv_sleep},
-    {label:'Temp deviation → sleep score',       val:corrs.temp_sleep},
-    {label:'Restfulness → readiness',            val:corrs.rest_ready},
-    {label:'Workout day → next day readiness',   val:corrs.workout_ready},
-  ];
-  return items.map(item=>{
-    const r=item.val;
-    const pct=r==null?0:Math.abs(r)*100;
-    const color=r==null?'#6b7280':r>0.3?'#22c55e':r<-0.3?'#ef4444':'#f59e0b';
-    return`<div class="corr-row">
-      <div class="corr-label">${item.label}</div>
-      <div class="corr-bar-wrap"><div class="corr-bar" style="width:${pct}%;background:${color}"></div></div>
-      <div class="corr-val" style="color:${color}">${r==null?'—':r.toFixed(2)}</div>
-    </div>`;
-  }).join('');
+function insightCard(icon, headline, finding, todayLine, accent){
+  accent = accent || 'var(--accent)';
+  return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;border-left:3px solid ${accent}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:18px">${icon}</span>
+      <span style="font-size:13px;font-weight:700;color:var(--text)">${headline}</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:${todayLine?'10px':'0'}">${finding}</div>
+    ${todayLine ? `<div style="font-size:12px;font-weight:600;padding:6px 10px;background:var(--surface);border-radius:8px;border:1px solid var(--border)">${todayLine}</div>` : ''}
+  </div>`;
+}
+
+function renderCorrelations(corrs, ci){
+  if (!ci) {
+    // Fallback to old bar chart if no insights available
+    const items=[
+      {label:'Steps → deep sleep',val:corrs.steps_deep},{label:'Sleep → readiness',val:corrs.sleep_ready},
+      {label:'HRV → sleep',val:corrs.hrv_sleep},{label:'Temp → sleep',val:corrs.temp_sleep},
+    ];
+    return items.map(item=>{const r=item.val;const pct=r==null?0:Math.abs(r)*100;const color=r==null?'#6b7280':r>0.3?'#22c55e':r<-0.3?'#ef4444':'#f59e0b';
+      return`<div class="corr-row"><div class="corr-label">${item.label}</div><div class="corr-bar-wrap"><div class="corr-bar" style="width:${pct}%;background:${color}"></div></div><div class="corr-val" style="color:${color}">${r==null?'—':r.toFixed(2)}</div></div>`;
+    }).join('');
+  }
+
+  const cards = [];
+  const sd = ci.steps_deep || {};
+  if (sd.diff_min != null && sd.high_avg_min && sd.low_avg_min) {
+    const gap = sd.steps_gap || 0;
+    const todayPct = Math.min(100, Math.round((sd.today_steps||0) / sd.threshold * 100));
+    const gaining  = sd.per_1k != null ? `+${sd.per_1k} min deep sleep per 1,000 extra steps` : '';
+    const todayLine = gap > 0
+      ? `Today: ${(sd.today_steps||0).toLocaleString()} steps — <span style="color:#f59e0b">${gap.toLocaleString()} below your ${sd.threshold.toLocaleString()}-step threshold</span>`
+      : `Today: ${(sd.today_steps||0).toLocaleString()} steps — <span style="color:#22c55e">above your threshold ✓</span>`;
+    cards.push(insightCard('🚶','Your step-sleep formula',
+      `On days you cross <strong>${sd.threshold.toLocaleString()} steps</strong>, your deep sleep averages <strong style="color:#22c55e">${sd.high_avg_min} min</strong>. On lighter days: <strong style="color:#ef4444">${sd.low_avg_min} min</strong>. That's a <strong>${sd.diff_min}-minute gap</strong> driven purely by how much you move. ${gaining?`<span style="color:var(--muted)">(${gaining})</span>`:''}`,
+      todayLine, '#3b82f6'));
+  }
+
+  const sr = ci.sleep_ready || {};
+  if (sr.per_10 != null && sr.last_sleep != null) {
+    const dir = sr.per_10 >= 0 ? `+${sr.per_10}` : `${sr.per_10}`;
+    const color = sr.per_10 >= 2 ? '#22c55e' : sr.per_10 <= -2 ? '#ef4444' : '#f59e0b';
+    cards.push(insightCard('💤','How last night shapes today',
+      `In your data, a 10-point higher sleep score predicts <strong style="color:${color}">${dir} readiness points</strong> the next day. Last night you scored <strong>${sr.last_sleep}</strong>. This is your personal pattern — not a population average.`,
+      null, color));
+  }
+
+  const wo = ci.workout_ready || {};
+  if (wo.diff != null && wo.workout_avg && wo.rest_avg) {
+    const color = wo.diff >= 3 ? '#22c55e' : wo.diff >= 0 ? '#3b82f6' : '#f59e0b';
+    const sign = wo.diff >= 0 ? '+' : '';
+    cards.push(insightCard('🏋️','Does working out help your recovery?',
+      `The day after you work out, your readiness averages <strong style="color:#22c55e">${wo.workout_avg}</strong>. On rest days it's <strong style="color:#ef4444">${wo.rest_avg}</strong>. Working out gives you <strong style="color:${color}">${sign}${wo.diff} readiness points</strong> on average the next day.`,
+      null, color));
+  }
+
+  const hs = ci.hrv_sleep || {};
+  if (hs.per_10 != null) {
+    const dir = hs.per_10 >= 0 ? `adds +${hs.per_10}` : `costs ${Math.abs(hs.per_10)}`;
+    const hvl = hs.latest_hrv != null ? `Your current HRV balance: <strong>${hs.latest_hrv}</strong>.` : '';
+    cards.push(insightCard('📡','Your HRV-sleep connection',
+      `Every 10-point rise in your HRV balance <strong>${dir} sleep quality points</strong> for you personally. ${hvl}`,
+      null, '#a855f7'));
+  }
+
+  const ts = ci.temp_sleep || {};
+  if (ts.diff != null && ts.elevated_avg && ts.normal_avg) {
+    const isBad = ts.diff < -3;
+    const latest = ts.latest_temp;
+    const tempToday = latest != null
+      ? (latest >= 0.5 ? `Tonight you're elevated (+${latest.toFixed(2)}°C) — expect a harder night.`
+         : `Tonight your temp is normal (${latest >= 0 ? '+' : ''}${latest.toFixed(2)}°C) — no flag.`)
+      : null;
+    cards.push(insightCard('🌡️','Temperature is your hidden sleep killer',
+      `On nights your body temp spikes +0.5°C or more, your sleep score drops to an average of <strong style="color:#ef4444">${ts.elevated_avg}</strong> vs <strong style="color:#22c55e">${ts.normal_avg}</strong> on normal nights — a <strong>${Math.abs(ts.diff)}-point hit</strong>. Alcohol, late meals, and hot rooms are the main triggers.`,
+      tempToday, '#ef4444'));
+  }
+
+  return cards.length ? cards.join('') : '<div style="color:var(--muted);font-size:13px;padding:10px 0">Keep wearing your ring — insights unlock after 2+ weeks of data.</div>';
 }
 
 // ── Tonight Card ─────────────────────────────────────────────────────────────
-function tonightCardHTML(card) {
+function tonightCardHTML(card, ci) {
   if (!card) return '';
   const actionsHTML = (card.actions || []).map(a => `
     <div class="tonight-action">
@@ -959,6 +1024,30 @@ function tonightCardHTML(card) {
     </div>`).join('');
 
   const recHTML = card.sleep_recommendation ? `<div class="sleep-rec-pill">🛏 ${card.sleep_recommendation}</div>` : '';
+
+  // Steps-to-threshold indicator using correlation insights
+  const sd = ci?.steps_deep;
+  let stepsHTML = '';
+  if (sd && sd.threshold && sd.today_steps != null) {
+    const pct = Math.min(100, Math.round((sd.today_steps / sd.threshold) * 100));
+    const reached = sd.today_steps >= sd.threshold;
+    const barColor = reached ? '#22c55e' : pct >= 60 ? '#f59e0b' : '#6366f1';
+    const stepsGapMsg = reached
+      ? `✅ You've cleared ${sd.threshold.toLocaleString()} steps — your deep sleep sweet spot.`
+      : `${sd.steps_gap.toLocaleString()} steps short of your ${sd.threshold.toLocaleString()}-step deep sleep threshold (+${sd.diff_min ?? '?'}min deep sleep on step-heavy days).`;
+    stepsHTML = `
+    <div style="margin:12px 0 0;padding:10px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">🚶 Steps Progress</span>
+        <span style="font-size:12px;font-weight:700;color:${barColor}">${sd.today_steps.toLocaleString()} / ${sd.threshold.toLocaleString()}</span>
+      </div>
+      <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:7px">
+        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.4">${stepsGapMsg}</div>
+    </div>`;
+  }
+
   return `
   <div class="tonight-card ${card.verdict || 'ok'}">
     <div class="tonight-header">
@@ -967,6 +1056,7 @@ function tonightCardHTML(card) {
     </div>
     ${recHTML}
     <div class="tonight-actions">${actionsHTML}</div>
+    ${stepsHTML}
   </div>`;
 }
 
@@ -1481,7 +1571,7 @@ function changeToken() { switchToken(); }
 })();
 
 // ── Vitals ────────────────────────────────────────────────────────────────────
-function renderVitals(v, days, user, res) {
+function renderVitals(v, days, user, res, ci) {
   if (!v) { document.getElementById('vitals').innerHTML='<div class="loading"><div style="color:var(--muted)">No vitals data available.</div></div>'; return; }
   const l = v.latest || {};
   const rl = res?.latest || {};
@@ -1559,14 +1649,48 @@ function renderVitals(v, days, user, res) {
     </div>
     <div class="card score-card">
       <div class="card-title">🧠 Stress Balance</div>
-      <div style="font-size:36px;font-weight:800;color:${stressColor};margin:12px 0 4px">${stressIcon}</div>
-      <div style="font-size:15px;font-weight:700;color:${stressColor};margin-bottom:6px">${stressLabel}</div>
-      <div style="font-size:11px;color:var(--muted)">${stressHigh}m stress · ${recHigh}m recovery</div>
+      ${(()=>{
+        const cs = ci?.stress;
+        const totalToday = stressHigh + recHigh || 1;
+        const recPct = Math.round((recHigh / totalToday) * 100);
+        const strPct = 100 - recPct;
+        const ratioColor = recPct >= 60 ? 'var(--green)' : recPct >= 40 ? 'var(--yellow)' : 'var(--red)';
+        const hasData = stressHigh > 0 || recHigh > 0;
+        if (!hasData) return `<div style="font-size:36px;font-weight:800;color:${stressColor};margin:12px 0 4px">${stressIcon}</div><div style="font-size:15px;font-weight:700;color:${stressColor};margin-bottom:6px">${stressLabel}</div><div style="font-size:11px;color:var(--muted)">No data — requires Oura Stress feature</div>`;
+        const streakWarn = cs?.streak > 1 ? `<div style="background:rgba(239,68,68,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#ef4444;margin:6px 0">⚠️ ${cs.streak} high-stress days in a row</div>` : '';
+        const vsTypical = cs?.typical_pct != null ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">Your norm: ${100 - cs.typical_pct}% recovery</div>` : '';
+        const impactLine = cs?.ready_impact && Math.abs(cs.ready_impact) >= 2 ? `<div style="font-size:11px;margin-top:5px;color:${cs.ready_impact < 0 ? '#f59e0b' : '#22c55e'}">${cs.ready_impact < 0 ? '↓' : '↑'} ~${Math.abs(Math.round(cs.ready_impact))} pts readiness impact tonight</div>` : '';
+        return `
+          <div style="font-size:42px;font-weight:900;letter-spacing:-2px;color:${ratioColor};line-height:1;margin:6px 0 0">${recPct}%</div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">recovery today</div>
+          <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:6px">
+            <div style="width:${strPct}%;background:#ef4444"></div>
+            <div style="width:${recPct}%;background:#22c55e"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">${stressHigh}m stress · ${recHigh}m recovery</div>
+          ${vsTypical}${streakWarn}${impactLine}`;
+      })()}
     </div>
     <div class="card score-card">
       <div class="card-title">❤️ Cardiovascular Age</div>
-      <div style="font-size:36px;font-weight:800;color:${l.cardio_age!=null?'var(--accent)':'var(--muted)'};margin:12px 0 4px">${cardioAge}</div>
-      <div style="font-size:12px;color:var(--muted)">${l.cardio_age!=null?'Estimated vascular age':'Not available for your ring/plan'}</div>
+      ${(()=>{
+        const cc = ci?.cardio;
+        if (!cc || cc.vascular_age == null) return `<div style="font-size:36px;font-weight:800;color:var(--muted);margin:12px 0 4px">—</div><div style="font-size:12px;color:var(--muted)">Not available for your ring/plan</div>`;
+        const gap = cc.gap; // user_age - vascular_age; positive = younger
+        const gapAbs = Math.abs(gap);
+        const gapColor = gap >= 5 ? '#22c55e' : gap >= 1 ? 'var(--accent)' : gap <= -3 ? '#ef4444' : '#f59e0b';
+        const gapBg   = gap >= 5 ? 'rgba(34,197,94,.1)' : gap >= 1 ? 'rgba(99,102,241,.1)' : gap <= -3 ? 'rgba(239,68,68,.1)' : 'rgba(245,158,11,.1)';
+        const gapBdr  = gap >= 5 ? 'rgba(34,197,94,.25)' : gap >= 1 ? 'rgba(99,102,241,.25)' : gap <= -3 ? 'rgba(239,68,68,.25)' : 'rgba(245,158,11,.25)';
+        const gapLabel = gap > 0 ? `${gapAbs} yr${gapAbs!==1?'s':''} younger than your age` : gap < 0 ? `${gapAbs} yr${gapAbs!==1?'s':''} older than your age` : 'Matches your chronological age';
+        const benchmark = gap >= 6 ? 'Top 10% cardiovascular health' : gap >= 3 ? 'Above average — keep it up' : gap >= 0 ? 'Average for your demographic' : 'Below average — cardio training helps';
+        return `
+          <div style="font-size:52px;font-weight:900;letter-spacing:-3px;color:${gapColor};line-height:1;margin:6px 0 2px">${cc.vascular_age}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">vascular age · you're ${cc.user_age}</div>
+          <div style="background:${gapBg};border:1px solid ${gapBdr};border-radius:8px;padding:7px 10px;margin-bottom:6px">
+            <div style="font-size:12px;font-weight:700;color:${gapColor}">${gapLabel}</div>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">${benchmark}</div>`;
+      })()}
     </div>
     <div class="card score-card">
       <div class="card-title">🏃 VO2 Max</div>
