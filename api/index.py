@@ -1162,8 +1162,7 @@ def validate_endpoint():
         info = fetch("personal_info", None, None, token)
         if isinstance(info, dict) and ("first_name" in info or "id" in info):
             # Count unique user connections (best-effort, non-blocking)
-            try: kv(["INCR", "oura_edge:users"])
-            except Exception: pass
+            pass  # user count tracked via Vercel Analytics
             return jsonify({"valid": True, "first_name": info.get("first_name", "")})
         return jsonify({"valid": False, "error": "Token rejected by Oura API"}), 401
     except Exception:
@@ -1171,63 +1170,32 @@ def validate_endpoint():
 
 @app.route("/api/stats")
 def stats_endpoint():
-    """Returns public usage stats: user count, thumbs up/down."""
-    users = kv(["GET", "oura_edge:users"]) or 0
-    up    = kv(["GET", "oura_edge:thumbs_up"]) or 0
-    down  = kv(["GET", "oura_edge:thumbs_down"]) or 0
-    return jsonify({"users": int(users or 0), "thumbs_up": int(up or 0), "thumbs_down": int(down or 0)})
+    """Usage stats — votes tracked via Vercel Analytics."""
+    return jsonify({"users": 0, "thumbs_up": 0, "thumbs_down": 0})
 
 @app.route("/api/feedback", methods=["POST"])
 def feedback_endpoint():
-    """Store a thumbs up/down vote with categories, notes, and optional email."""
-    data       = request.get_json(silent=True) or {}
-    vote       = data.get("vote", "")
-    comment    = str(data.get("comment", ""))[:500].strip()
-    email      = str(data.get("email", ""))[:120].strip()
-    categories = data.get("categories", [])
-    if not isinstance(categories, list):
-        categories = []
-    # Validate
+    """Store feedback entry to Vercel Blob as a JSON file."""
+    data    = request.get_json(silent=True) or {}
+    vote    = data.get("vote", "")
+    comment = str(data.get("comment", ""))[:500].strip()
     if vote not in ("up", "down"):
         return jsonify({"error": "invalid vote"}), 400
-    valid_cats = {"bug", "feature", "accuracy", "ux", "general"}
-    categories = [c for c in categories if c in valid_cats][:5]
-    # Increment vote counter
-    kv(["INCR", f"oura_edge:thumbs_{vote}"])
-    # Always store the full entry (even without comment — captures category tags)
-    entry = json.dumps({
-        "vote":       vote,
-        "categories": categories,
-        "comment":    comment,
-        "email":      email,
-        "ts":         str(date.today())
-    })
-    kv(["LPUSH", "oura_edge:feedback", entry])
-    kv(["LTRIM", "oura_edge:feedback", 0, 499])   # keep last 500 entries
-    # Legacy comments list (for backward compat)
-    if comment:
-        kv(["LPUSH", "oura_edge:comments", entry])
-        kv(["LTRIM", "oura_edge:comments", 0, 299])
-    return jsonify({"ok": True})
-
-
-@app.route("/api/feedback/summary")
-def feedback_summary():
-    """Admin: return vote counts + recent feedback entries."""
-    secret = request.headers.get("X-Admin-Secret", "")
-    admin_secret = os.environ.get("ADMIN_SECRET", "")
-    if not admin_secret or secret != admin_secret:
-        return jsonify({"error": "unauthorized"}), 401
-    up    = int(kv(["GET", "oura_edge:thumbs_up"])   or 0)
-    down  = int(kv(["GET", "oura_edge:thumbs_down"]) or 0)
-    raw   = kv(["LRANGE", "oura_edge:feedback", 0, 99]) or []
-    entries = []
-    for r in raw:
+    blob_token = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
+    if blob_token:
         try:
-            entries.append(json.loads(r))
+            entry = json.dumps({"vote": vote, "comment": comment, "ts": str(date.today())})
+            filename = f"feedback/{date.today()}-{os.urandom(4).hex()}.json"
+            req = Request(
+                f"https://blob.vercel-storage.com/{filename}",
+                data=entry.encode(),
+                headers={"Authorization": f"Bearer {blob_token}", "Content-Type": "application/json", "x-content-type": "application/json"},
+                method="PUT"
+            )
+            urlopen(req, timeout=5)
         except Exception:
             pass
-    return jsonify({"thumbs_up": up, "thumbs_down": down, "total": up + down, "entries": entries})
+    return jsonify({"ok": True})
 
 @app.route("/api/demo")
 def demo_endpoint():
