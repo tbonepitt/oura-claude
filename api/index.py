@@ -67,26 +67,6 @@ def linreg(xs, ys):
 
 def clamp(v, lo, hi): return max(lo, min(hi, v))
 
-# ── KV store (Vercel KV / Upstash Redis REST) ─────────────────────────────────
-
-def kv(cmd_args):
-    """Execute a Redis REST command. Supports Vercel KV or Upstash env var names."""
-    url   = (os.environ.get("KV_REST_API_URL") or
-             os.environ.get("UPSTASH_REDIS_REST_URL", "")).rstrip("/")
-    token = (os.environ.get("KV_REST_API_TOKEN") or
-             os.environ.get("UPSTASH_REDIS_REST_TOKEN", ""))
-    if not url or not token:
-        return None
-    try:
-        body = json.dumps(cmd_args).encode()
-        req  = Request(url, data=body, headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        })
-        with urlopen(req, timeout=4) as r:
-            return json.loads(r.read()).get("result")
-    except Exception:
-        return None
 
 # ── Sleep Science ──────────────────────────────────────────────────────────────
 
@@ -1175,26 +1155,20 @@ def stats_endpoint():
 
 @app.route("/api/feedback", methods=["POST"])
 def feedback_endpoint():
-    """Store feedback entry to Vercel Blob as a JSON file."""
+    """Accept feedback vote + optional comment.
+    Votes are tracked via Vercel Analytics (frontend event).
+    Comments are logged to Vercel Function Logs (searchable in Vercel dashboard, 30-day retention).
+    """
     data    = request.get_json(silent=True) or {}
     vote    = data.get("vote", "")
     comment = str(data.get("comment", ""))[:500].strip()
     if vote not in ("up", "down"):
         return jsonify({"error": "invalid vote"}), 400
-    blob_token = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
-    if blob_token:
-        try:
-            entry = json.dumps({"vote": vote, "comment": comment, "ts": str(date.today())})
-            filename = f"feedback/{date.today()}-{os.urandom(4).hex()}.json"
-            req = Request(
-                f"https://blob.vercel-storage.com/{filename}",
-                data=entry.encode(),
-                headers={"Authorization": f"Bearer {blob_token}", "Content-Type": "application/json", "x-content-type": "application/json"},
-                method="PUT"
-            )
-            urlopen(req, timeout=5)
-        except Exception:
-            pass
+    # Log to Vercel Function Logs — visible at vercel.com → project → Logs
+    entry = {"event": "feedback", "vote": vote, "ts": str(date.today())}
+    if comment:
+        entry["comment"] = comment
+    print(json.dumps(entry), flush=True)
     return jsonify({"ok": True})
 
 @app.route("/api/demo")
