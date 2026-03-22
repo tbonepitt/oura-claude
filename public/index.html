@@ -12,6 +12,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="/manifest.json">
+<!-- Vercel Web Analytics — privacy-friendly, no cookies -->
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -522,12 +525,18 @@ function makeBar(id,labels,datasets,opts={}){
 }
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
+// ── Analytics ─────────────────────────────────────────────────────────────────
+function track(event, props){
+  try { window.va && window.va('event', {name: event, ...props}); } catch(e){}
+}
+
 document.querySelectorAll('.tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(tab.dataset.page).classList.add('active');
+    track('tab_view', {tab: tab.dataset.page});
   });
 });
 
@@ -1515,6 +1524,7 @@ async function connectToken() {
     localStorage.setItem(STORAGE_KEY, token);
     localStorage.removeItem(DEMO_KEY);
     document.getElementById('setup-screen').style.display = 'none';
+    track('connect_token');
     loadData();
   } catch(e) {
     errEl.textContent  = '⚠️ Could not reach server. Try again.';
@@ -1529,6 +1539,7 @@ function loadDemo() {
   localStorage.removeItem(STORAGE_KEY);
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('demoBanner').style.display = 'block';
+  track('demo_started');
   loadData();
 }
 
@@ -1553,6 +1564,7 @@ document.addEventListener('click', function(e) {
 
 function refreshData() {
   document.getElementById('acctDropdown').classList.remove('open');
+  track('data_refreshed');
   loadData();
 }
 
@@ -1573,6 +1585,7 @@ function closeModal() {
 }
 
 function doSignOut() {
+  track('signed_out');
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(DEMO_KEY);
   location.reload();
@@ -1855,8 +1868,16 @@ async function loadData(){
       document.getElementById('acctName').textContent = fn;
       document.getElementById('acctAvatar').textContent = fn.charAt(0).toUpperCase();
     }
+    track('dashboard_loaded', {
+      mode:          isDemo() ? 'demo' : 'live',
+      sleep_score:   d.latest?.sleep   ?? null,
+      ready_score:   d.latest?.ready   ?? null,
+      activity_score:d.latest?.activity ?? null,
+      anomalies:     d.anomalies?.length ?? 0,
+    });
     render(d);
   } catch(e) {
+    track('dashboard_error');
     document.getElementById('today').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data. Check your token or try again.</div></div>';
   }
 }
