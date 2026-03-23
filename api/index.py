@@ -3,7 +3,8 @@
 Token is read from the X-Oura-Token request header. Never stored server-side.
 """
 
-import json, os, math, random, urllib.parse
+import json, os, math, random, urllib.parse, smtplib
+from email.mime.text import MIMEText
 from datetime import date, timedelta, datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
@@ -1155,20 +1156,37 @@ def stats_endpoint():
 
 @app.route("/api/feedback", methods=["POST"])
 def feedback_endpoint():
-    """Accept feedback vote + optional comment.
-    Votes are tracked via Vercel Analytics (frontend event).
-    Comments are logged to Vercel Function Logs (searchable in Vercel dashboard, 30-day retention).
-    """
+    """Accept feedback vote + optional comment, email to saintlydigitalbot@gmail.com."""
     data    = request.get_json(silent=True) or {}
     vote    = data.get("vote", "")
     comment = str(data.get("comment", ""))[:500].strip()
     if vote not in ("up", "down"):
         return jsonify({"error": "invalid vote"}), 400
-    # Log to Vercel Function Logs — visible at vercel.com → project → Logs
-    entry = {"event": "feedback", "vote": vote, "ts": str(date.today())}
+
+    emoji   = "👍" if vote == "up" else "👎"
+    subject = f"{emoji} Oura Edge Feedback — {vote.upper()}"
+    body    = f"Vote: {emoji} {vote.upper()}\nDate: {date.today()}\n"
     if comment:
-        entry["comment"] = comment
-    print(json.dumps(entry), flush=True)
+        body += f"\nComment:\n{comment}\n"
+    else:
+        body += "\n(No comment left)\n"
+
+    gmail_user = os.environ.get("GMAIL_USER", "")
+    gmail_pass = os.environ.get("GMAIL_APP_PASSWORD", "")
+    if gmail_user and gmail_pass:
+        try:
+            msg = MIMEText(body)
+            msg["Subject"] = subject
+            msg["From"]    = gmail_user
+            msg["To"]      = "saintlydigitalbot@gmail.com"
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as s:
+                s.login(gmail_user, gmail_pass)
+                s.sendmail(gmail_user, ["saintlydigitalbot@gmail.com"], msg.as_string())
+        except Exception as e:
+            print(f"Email error: {e}", flush=True)
+
+    # Always log as fallback
+    print(json.dumps({"event": "feedback", "vote": vote, "comment": comment, "ts": str(date.today())}), flush=True)
     return jsonify({"ok": True})
 
 @app.route("/api/demo")
