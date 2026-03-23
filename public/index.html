@@ -2369,13 +2369,16 @@ function updateCharCount() {
   el.classList.toggle('near-limit', rem < 80);
 }
 
-function submitFeedback() {
+async function submitFeedback() {
   if (!_feedbackVote) return;
   const comment = document.getElementById('fbComment').value.trim();
-  const emoji   = _feedbackVote === 'up' ? '👍' : '👎';
-  const subject = encodeURIComponent(`${emoji} Oura Edge Feedback — ${_feedbackVote.toUpperCase()}`);
-  const body    = encodeURIComponent(`Vote: ${emoji} ${_feedbackVote.toUpperCase()}\n\n${comment || '(no comment)'}`);
-  window.location.href = `mailto:saintlydigitalbot@gmail.com?subject=${subject}&body=${body}`;
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({vote: _feedbackVote, comment})
+    });
+  } catch(e) {}
   // Suppress for 7 days after submitting
   localStorage.setItem('oura_edge_feedback_done', Date.now() + 7 * 24 * 60 * 60 * 1000);
   document.getElementById('fbMain').style.display   = 'none';

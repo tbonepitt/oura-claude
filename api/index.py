@@ -3,7 +3,8 @@
 Token is read from the X-Oura-Token request header. Never stored server-side.
 """
 
-import json, os, math, random, urllib.parse
+import json, os, math, random, urllib.parse, smtplib
+from email.mime.text import MIMEText
 from datetime import date, timedelta, datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
@@ -1155,12 +1156,29 @@ def stats_endpoint():
 
 @app.route("/api/feedback", methods=["POST"])
 def feedback_endpoint():
-    """Log feedback vote — mailto handled client-side, this is just a fallback counter."""
-    data = request.get_json(silent=True) or {}
-    vote = data.get("vote", "")
+    """Receive feedback and email it via Gmail SMTP."""
+    data    = request.get_json(silent=True) or {}
+    vote    = data.get("vote", "")
+    comment = str(data.get("comment", ""))[:500].strip()
     if vote not in ("up", "down"):
         return jsonify({"error": "invalid vote"}), 400
-    print(json.dumps({"event": "feedback", "vote": vote, "ts": str(date.today())}), flush=True)
+
+    emoji   = "👍" if vote == "up" else "👎"
+    subject = f"{emoji} Oura Edge Feedback — {vote.upper()}"
+    body    = f"Vote: {emoji} {vote.upper()}\nDate: {date.today()}\n\n"
+    body   += f"Comment:\n{comment}" if comment else "(No comment)"
+
+    try:
+        msg = MIMEText(body)
+        msg["Subject"] = subject
+        msg["From"]    = os.environ.get("GMAIL_USER", "")
+        msg["To"]      = "saintlydigitalbot@gmail.com"
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as s:
+            s.login(os.environ["GMAIL_USER"], os.environ["GMAIL_APP_PASSWORD"])
+            s.sendmail(os.environ["GMAIL_USER"], ["saintlydigitalbot@gmail.com"], msg.as_string())
+    except Exception as e:
+        print(f"Email error: {e}", flush=True)
+
     return jsonify({"ok": True})
 
 @app.route("/api/demo")
