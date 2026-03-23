@@ -350,9 +350,12 @@ def detect_anomalies(days, s_map, r_map, a_map, sleep_scores, ready_scores, act_
     return sorted(seen.values(), key=lambda x: x["date"], reverse=True)[:8]
 
 def calc_sleep_debt(sleep_detail, target_hours=8.0):
+    """Calculate cumulative sleep debt, ignoring naps and partial syncs under 3h."""
     debt_hours = 0.0; log = []
     for d in sleep_detail[-30:]:
         actual = (d.get("total_sleep_duration") or 0) / 3600
+        if actual < 3.0:          # skip naps / partial ring syncs
+            continue
         nightly_debt = target_hours - actual
         debt_hours += nightly_debt
         log.append({"date":d.get("day",""),"actual":round(actual,2),

@@ -2184,7 +2184,10 @@ function renderVitals(v, days, user, res, ci) {
 // ── Boot ─────────────────────────────────────────────────────────────────────
 async function loadData(){
   // If a real token exists, always clear demo mode — prevents stale demo flag
-  if (getToken()) localStorage.removeItem(DEMO_KEY);
+  if (getToken()) {
+    localStorage.removeItem(DEMO_KEY);
+    document.getElementById('demoBanner').style.display = 'none';
+  }
   if (!getToken() && !isDemo()) return;
 
   const loader = document.getElementById('global-loader');
