@@ -2333,13 +2333,14 @@ let _feedbackVote = null;
 let _feedbackCats = [];
 
 function showFeedbackWidget() {
-  if (localStorage.getItem('oura_edge_feedback_done')) return;
+  const done = localStorage.getItem('oura_edge_feedback_done');
+  if (done && Date.now() < parseInt(done)) return; // within cooldown
   setTimeout(() => document.getElementById('feedbackWidget').classList.add('visible'), 4000);
 }
 
 function dismissFeedback() {
   document.getElementById('feedbackWidget').classList.remove('visible');
-  localStorage.setItem('oura_edge_feedback_done', '1');
+  // Only hide for this session — don't permanently suppress
 }
 
 function selectVote(vote) {
@@ -2375,7 +2376,8 @@ function submitFeedback() {
   const subject = encodeURIComponent(`${emoji} Oura Edge Feedback — ${_feedbackVote.toUpperCase()}`);
   const body    = encodeURIComponent(`Vote: ${emoji} ${_feedbackVote.toUpperCase()}\n\n${comment || '(no comment)'}`);
   window.location.href = `mailto:saintlydigitalbot@gmail.com?subject=${subject}&body=${body}`;
-  localStorage.setItem('oura_edge_feedback_done', '1');
+  // Suppress for 7 days after submitting
+  localStorage.setItem('oura_edge_feedback_done', Date.now() + 7 * 24 * 60 * 60 * 1000);
   document.getElementById('fbMain').style.display   = 'none';
   document.getElementById('fbThanks').style.display = 'block';
   const msg = _feedbackVote === 'up'
