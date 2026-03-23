@@ -3,8 +3,7 @@
 Token is read from the X-Oura-Token request header. Never stored server-side.
 """
 
-import json, os, math, random, urllib.parse, smtplib
-from email.mime.text import MIMEText
+import json, os, math, random, urllib.parse
 from datetime import date, timedelta, datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
@@ -68,6 +67,24 @@ def linreg(xs, ys):
 
 def clamp(v, lo, hi): return max(lo, min(hi, v))
 
+# ── Upstash Redis (KV store for feedback) ─────────────────────────────────────
+
+def kv(cmd_args):
+    """Execute a Redis REST command against Upstash."""
+    url   = os.environ.get("UPSTASH_REDIS_REST_URL", "").rstrip("/")
+    token = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
+    if not url or not token:
+        return None
+    try:
+        body = json.dumps(cmd_args).encode()
+        req  = Request(url, data=body, headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type":  "application/json",
+        })
+        with urlopen(req, timeout=4) as r:
+            return json.loads(r.read()).get("result")
+    except Exception:
+        return None
 
 # ── Sleep Science ──────────────────────────────────────────────────────────────
 
@@ -1151,34 +1168,24 @@ def validate_endpoint():
 
 @app.route("/api/stats")
 def stats_endpoint():
-    """Usage stats — votes tracked via Vercel Analytics."""
-    return jsonify({"users": 0, "thumbs_up": 0, "thumbs_down": 0})
+    """Return feedback vote counts from Upstash."""
+    up   = int(kv(["GET", "oura_edge:thumbs_up"])   or 0)
+    down = int(kv(["GET", "oura_edge:thumbs_down"]) or 0)
+    return jsonify({"thumbs_up": up, "thumbs_down": down})
 
 @app.route("/api/feedback", methods=["POST"])
 def feedback_endpoint():
-    """Receive feedback and email it via Gmail SMTP."""
+    """Store feedback vote + comment in Upstash Redis."""
     data    = request.get_json(silent=True) or {}
     vote    = data.get("vote", "")
     comment = str(data.get("comment", ""))[:500].strip()
     if vote not in ("up", "down"):
         return jsonify({"error": "invalid vote"}), 400
-
-    emoji   = "👍" if vote == "up" else "👎"
-    subject = f"{emoji} Oura Edge Feedback — {vote.upper()}"
-    body    = f"Vote: {emoji} {vote.upper()}\nDate: {date.today()}\n\n"
-    body   += f"Comment:\n{comment}" if comment else "(No comment)"
-
-    try:
-        msg = MIMEText(body)
-        msg["Subject"] = subject
-        msg["From"]    = os.environ.get("GMAIL_USER", "")
-        msg["To"]      = "saintlydigitalbot@gmail.com"
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as s:
-            s.login(os.environ["GMAIL_USER"], os.environ["GMAIL_APP_PASSWORD"])
-            s.sendmail(os.environ["GMAIL_USER"], ["saintlydigitalbot@gmail.com"], msg.as_string())
-    except Exception as e:
-        print(f"Email error: {e}", flush=True)
-
+    kv(["INCR", f"oura_edge:thumbs_{vote}"])
+    if comment:
+        entry = json.dumps({"vote": vote, "comment": comment, "ts": str(date.today())})
+        kv(["LPUSH", "oura_edge:comments", entry])
+        kv(["LTRIM", "oura_edge:comments", 0, 499])  # keep last 500
     return jsonify({"ok": True})
 
 @app.route("/api/demo")
