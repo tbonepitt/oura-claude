@@ -461,13 +461,22 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
       <input type="password" id="token-input" class="token-input" placeholder="Paste your Oura token here…" autocomplete="current-password" />
       <div id="token-error" class="token-error">⚠️ Invalid token — double-check and try again.</div>
       <div id="token-validating" class="token-validating">⏳ Validating token…</div>
-      <button class="connect-btn" id="connect-btn" onclick="connectToken()">Connect my Oura Ring →</button>
+      <button class="connect-btn" id="connect-btn" onclick="connectToken()">Connect my Ring →</button>
     </div>
 
     <div class="setup-or">or</div>
     <button class="demo-btn" onclick="loadDemo()">👀 Preview with demo data</button>
     <p class="setup-privacy">🔒 Your token is stored only in your browser — never on our servers.</p>
     <div id="userCountBadge" style="margin-top:12px;display:none"><span class="user-count-badge" id="userCountText">Loading…</span></div>
+  </div>
+  <div style="position:absolute;bottom:18px;left:0;right:0;text-align:center;font-size:11px;color:var(--muted)">
+    <a href="/privacy" style="color:var(--muted);text-decoration:none">Privacy Policy</a>
+    <span style="margin:0 8px;opacity:.3">·</span>
+    <a href="/terms" style="color:var(--muted);text-decoration:none">Terms</a>
+    <span style="margin:0 8px;opacity:.3">·</span>
+    Data provided by <a href="https://ouraring.com" target="_blank" style="color:#2F4A73;font-weight:600">ŌURA</a>
+    <span style="margin:0 8px;opacity:.3">·</span>
+    <a href="https://cloud.ouraring.com" target="_blank" style="color:var(--muted);text-decoration:none">View your Oura account ↗</a>
   </div>
 </div>
 
@@ -1848,7 +1857,7 @@ async function connectToken() {
       inp.classList.add('error');
       errEl.textContent  = '⚠️ Invalid token — double-check and try again.';
       errEl.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'Connect my Oura Ring →';
+      btn.disabled = false; btn.textContent = 'Connect my Ring →';
       valEl.style.display = 'none';
       return;
     }
@@ -1861,7 +1870,7 @@ async function connectToken() {
   } catch(e) {
     errEl.textContent  = '⚠️ Could not reach server. Try again.';
     errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Connect my Oura Ring →';
+    btn.disabled = false; btn.textContent = 'Connect my Ring →';
     valEl.style.display = 'none';
   }
 }
