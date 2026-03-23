@@ -2368,35 +2368,22 @@ function updateCharCount() {
   el.classList.toggle('near-limit', rem < 80);
 }
 
-async function submitFeedback() {
+function submitFeedback() {
   if (!_feedbackVote) return;
-  const btn     = document.getElementById('fbSubmit');
   const comment = document.getElementById('fbComment').value.trim();
-  const email   = document.getElementById('fbEmail').value.trim();
-  btn.disabled  = true;
-  btn.textContent = 'Sending…';
-  try {
-    await fetch('/api/feedback', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        vote:       _feedbackVote,
-        categories: _feedbackCats,
-        comment,
-        email
-      })
-    });
-  } catch(e) {}
+  const emoji   = _feedbackVote === 'up' ? '👍' : '👎';
+  const subject = encodeURIComponent(`${emoji} Oura Edge Feedback — ${_feedbackVote.toUpperCase()}`);
+  const body    = encodeURIComponent(`Vote: ${emoji} ${_feedbackVote.toUpperCase()}\n\n${comment || '(no comment)'}`);
+  window.location.href = `mailto:saintlydigitalbot@gmail.com?subject=${subject}&body=${body}`;
   localStorage.setItem('oura_edge_feedback_done', '1');
   document.getElementById('fbMain').style.display   = 'none';
   document.getElementById('fbThanks').style.display = 'block';
-  // Personalise thanks message
   const msg = _feedbackVote === 'up'
     ? 'Glad it\'s helping — share it with a friend! 🙌'
     : 'We\'ll use your notes to make it better. 🛠️';
   document.getElementById('fbThanksMsg').textContent = msg;
   setTimeout(() => document.getElementById('feedbackWidget').classList.remove('visible'), 3500);
-  track('feedback_submitted', {vote: _feedbackVote, categories: _feedbackCats, has_comment: !!comment, has_email: !!email});
+  track('feedback_submitted', {vote: _feedbackVote, has_comment: !!comment});
 }
 
 // Allow re-opening feedback from a button (if we add one later)
