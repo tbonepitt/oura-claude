@@ -8,21 +8,23 @@
 <meta property="og:title" content="Ring Edge — Personal Sleep Intelligence">
 <meta property="og:description" content="Sleep debt tracking, 7-day readiness forecast, and deep sleep analysis — all from your own ring data, updated daily.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#0d0f14">
+<meta name="theme-color" content="#151514">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/app-icon-512.svg">
 <!-- Vercel Web Analytics — privacy-friendly, no cookies -->
 <script defer src="/_vercel/insights/script.js"></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg:#0d0f14; --surface:#151820; --surface2:#1c202e; --border:#252a3a;
-  --text:#e8eaf0; --muted:#6b7280;
+  --bg:#151514; --surface:#1A1A18; --surface2:#222220; --border:#3D3D3A;
+  --text:#E8E6DF; --muted:#9C9A92;
   --green:#22c55e; --yellow:#f59e0b; --red:#ef4444;
   --blue:#3b82f6; --purple:#a855f7; --cyan:#06b6d4; --orange:#f97316;
-  --accent:#6366f1;
+  --accent:#5DCAA5;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5}
@@ -101,7 +103,7 @@ main{max-width:1400px;margin:0 auto;padding:24px 28px}
 .forecast-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px}
 .forecast-day{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;transition:transform .15s}
 .forecast-day:hover{transform:translateY(-2px)}
-.forecast-day.weekend{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.05)}
+.forecast-day.weekend{border-color:rgba(93,202,165,.3);background:rgba(93,202,165,.05)}
 .fc-dow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
 .fc-date{font-size:11px;color:var(--muted);margin-bottom:10px}
 .fc-score{font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
@@ -158,7 +160,7 @@ main{max-width:1400px;margin:0 auto;padding:24px 28px}
 /* Badge */
 .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:4px;margin-left:8px}
 .badge.live{background:rgba(34,197,94,.15);color:var(--green)}
-.badge.new{background:rgba(99,102,241,.15);color:var(--accent)}
+.badge.new{background:rgba(93,202,165,.15);color:var(--accent)}
 
 /* Loading */
 .loading{display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px}
@@ -181,7 +183,7 @@ main{max-width:1400px;margin:0 auto;padding:24px 28px}
 .finding-impact.high{background:rgba(239,68,68,.15);color:#ef4444}
 .finding-impact.medium{background:rgba(245,158,11,.15);color:#f59e0b}
 .finding-body{font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.6}
-.finding-action{font-size:13px;font-weight:600;color:var(--accent);padding:8px 12px;background:rgba(99,102,241,.08);border-radius:8px;border:1px solid rgba(99,102,241,.15)}
+.finding-action{font-size:13px;font-weight:600;color:var(--accent);padding:8px 12px;background:rgba(93,202,165,.08);border-radius:8px;border:1px solid rgba(93,202,165,.15)}
 .nights-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .night-pill{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px}
 .night-pill .deep{font-size:18px;font-weight:800;display:block;margin-bottom:2px}
@@ -208,7 +210,7 @@ canvas{display:block}
 
 
 /* Ring info card */
-.ring-card{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ring-card{background:linear-gradient(135deg,rgba(93,202,165,.1),rgba(93,202,165,.04));border:1px solid rgba(93,202,165,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .ring-card-left{display:flex;align-items:center;gap:14px}
 .ring-model{font-size:16px;font-weight:800;letter-spacing:-.3px}
 .ring-details{font-size:12px;color:var(--muted);margin-top:3px}
@@ -233,10 +235,10 @@ canvas{display:block}
 .workout-dur{font-weight:700;color:var(--accent);font-size:13px;white-space:nowrap}
 
 /* Sleep rec banner in tonight card */
-.sleep-rec-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px}
+.sleep-rec-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(93,202,165,.1);border:1px solid rgba(93,202,165,.2);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px}
 
 /* ── Footer ─────────────────────────────────────────────────────────────────── */
-footer.site-footer{background:var(--surface);border-top:1px solid var(--border);padding:16px 28px;text-align:center;font-size:11px;color:var(--muted);line-height:2;background:linear-gradient(0deg,rgba(99,102,241,.04),transparent)}
+footer.site-footer{background:var(--surface);border-top:1px solid var(--border);padding:16px 28px;text-align:center;font-size:11px;color:var(--muted);line-height:2;background:linear-gradient(0deg,rgba(93,202,165,.04),transparent)}
 footer.site-footer a{color:var(--muted);text-decoration:none;transition:color .15s}
 footer.site-footer a:hover{color:var(--accent)}
 footer.site-footer .sep{margin:0 8px;opacity:.3}
@@ -356,7 +358,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 .token-error{color:var(--red);font-size:12px;margin-top:-6px;margin-bottom:10px;text-align:left;display:none}
 .token-validating{color:var(--muted);font-size:12px;margin-top:-6px;margin-bottom:10px;text-align:left;display:none}
 /* Demo banner */
-.demo-banner{background:linear-gradient(90deg,rgba(99,102,241,.15),rgba(168,85,247,.15));border-bottom:1px solid rgba(99,102,241,.3);padding:8px 28px;text-align:center;font-size:13px;display:none}
+.demo-banner{background:linear-gradient(90deg,rgba(93,202,165,.15),rgba(93,202,165,.08));border-bottom:1px solid rgba(93,202,165,.3);padding:8px 28px;text-align:center;font-size:13px;display:none}
 .demo-banner span{color:var(--accent);font-weight:600}
 .freshness-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:6px 28px;font-size:11px;color:var(--muted);display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .freshness-bar.visible{display:flex}
@@ -405,7 +407,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 .fb-divider{border:none;border-top:1px solid var(--border);margin:10px 0}
 
 /* User count badge on login */
-.user-count-badge{display:inline-block;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--accent);font-weight:600;margin-top:10px}
+.user-count-badge{display:inline-block;background:rgba(93,202,165,.12);border:1px solid rgba(93,202,165,.25);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--accent);font-weight:600;margin-top:10px}
 </style>
 </head>
 <body>
@@ -419,13 +421,27 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 <!-- ── Setup / Onboarding Screen ─────────────────────────────────────────────── -->
 <div id="setup-screen">
   <div class="setup-card">
-    <div class="setup-logo">🩺</div>
-    <h2 class="setup-title">Ring Edge</h2>
+    <div class="setup-logo" style="font-size:0;margin-bottom:14px">
+      <svg width="120" height="136" viewBox="0 0 160 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(80, 60)">
+          <circle cx="0" cy="0" r="38" stroke="#E8E6DF" stroke-width="7" stroke-dasharray="209 30" stroke-dashoffset="15"/>
+          <path d="M 16,-40 L -4,8 L 4,-10 L -16,40" stroke="#5DCAA5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="-40" r="2.5" fill="#5DCAA5"/>
+          <circle cx="-16" cy="40" r="2.5" fill="#5DCAA5"/>
+          <rect x="-4" y="10" width="5" height="8" rx="1" fill="#5DCAA5" opacity="0.4"/>
+          <rect x="4" y="10" width="5" height="12" rx="1" fill="#5DCAA5" opacity="0.65"/>
+          <rect x="12" y="10" width="5" height="16" rx="1" fill="#5DCAA5"/>
+        </g>
+        <text x="80" y="132" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" font-weight="500" letter-spacing="4" fill="#E8E6DF">Ring</text>
+        <text x="80" y="160" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" font-weight="500" letter-spacing="4" fill="#5DCAA5">Edge</text>
+      </svg>
+    </div>
+    <h2 class="setup-title" style="display:none">Ring Edge</h2>
     <p class="setup-sub">Your 24-hour sleep & recovery intelligence. Personalized correlations, 7-day readiness forecasts, sleep debt tracking, and anomaly detection — all from your own Oura data, updated daily.</p>
 
     <!-- Auth method tabs -->
     <div class="auth-tabs">
-      <button class="auth-tab" id="tab-oauth" disabled style="opacity:.45;cursor:not-allowed" title="Coming soon">Sign in with Oura <span style="font-size:10px;background:rgba(99,102,241,.2);color:var(--accent);padding:1px 6px;border-radius:4px;font-weight:700;vertical-align:middle">Soon</span></button>
+      <button class="auth-tab" id="tab-oauth" disabled style="opacity:.45;cursor:not-allowed" title="Coming soon">Sign in with Oura <span style="font-size:10px;background:rgba(93,202,165,.2);color:var(--accent);padding:1px 6px;border-radius:4px;font-weight:700;vertical-align:middle">Soon</span></button>
       <button class="auth-tab active" id="tab-pat" onclick="switchAuthTab('pat')">Personal Access Token</button>
     </div>
 
@@ -481,7 +497,22 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 </div>
 
 <header>
-  <h1><span id="headerName">Your</span> Ring <span>Edge</span> <span onclick="openChangelog()" style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle;cursor:pointer" title="What's new in v4.0">v4.0 ✨</span></h1>
+  <a href="/" class="re-logo" aria-label="Ring Edge home" style="display:flex;align-items:center;text-decoration:none;flex-shrink:0">
+    <svg width="160" height="36" viewBox="0 0 280 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(28, 28)">
+        <circle cx="0" cy="0" r="18" stroke="#E8E6DF" stroke-width="4" stroke-dasharray="99 15" stroke-dashoffset="7.5"/>
+        <path d="M 7.5,-15 L -2.5,4 L 1.5,-5 L -7.5,15" stroke="#5DCAA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="7.5" cy="-15" r="1.5" fill="#5DCAA5"/>
+        <circle cx="-7.5" cy="15" r="1.5" fill="#5DCAA5"/>
+        <rect x="-2" y="5" width="2.5" height="4" rx="0.5" fill="#5DCAA5" opacity="0.5"/>
+        <rect x="2" y="5" width="2.5" height="6" rx="0.5" fill="#5DCAA5" opacity="0.7"/>
+        <rect x="6" y="5" width="2.5" height="8" rx="0.5" fill="#5DCAA5"/>
+      </g>
+      <text x="60" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="500" letter-spacing="3" fill="#E8E6DF">Ring</text>
+      <text x="130" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="500" letter-spacing="3" fill="#5DCAA5">Edge</text>
+    </svg>
+  </a>
+  <span onclick="openChangelog()" style="font-size:11px;font-weight:500;background:rgba(93,202,165,.15);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:8px;cursor:pointer;flex-shrink:0" title="What's new in v4.0">v4.0</span>
   <div class="header-right">
     <div class="dot"></div>
     <div class="date-badge" id="dateLabel">Loading…</div>
@@ -558,7 +589,18 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 </main>
 
 <footer class="site-footer" id="appFooter">
-  <span class="footer-bot">⚡ Powered by SaintlyBot and Claude Code</span>
+  <span class="footer-bot" style="display:inline-flex;align-items:center;gap:5px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-2px">
+      <g transform="translate(12, 12)">
+        <circle cx="0" cy="0" r="9" stroke="#9C9A92" stroke-width="2" stroke-dasharray="49 8" stroke-dashoffset="4"/>
+        <path d="M 3.5,-8 L -1,2 L 1,-3 L -3.5,8" stroke="#5DCAA5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="3.5" cy="-8" r="1" fill="#5DCAA5"/>
+      </g>
+    </svg>
+    Ring Edge
+  </span>
+  <span class="sep">·</span>
+  <span>⚡ Powered by SaintlyBot and Claude Code</span>
   <span class="sep">·</span>
   <a href="https://saintlydigital.com" target="_blank">saintlydigital.com</a>
   <span class="sep">·</span>
@@ -568,7 +610,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <span class="sep">·</span>
   <a href="https://github.com/tbonepitt/oura-claude" target="_blank">GitHub ↗</a>
   <span class="sep">·</span>
-  Data provided by <a href="https://ouraring.com" target="_blank" style="color:#2F4A73;font-weight:600">ŌURA</a>
+  Data provided by <a href="https://ouraring.com" target="_blank">Oura</a>
   <span class="sep">·</span>
   <a href="https://cloud.ouraring.com" target="_blank">View your Oura account ↗</a>
 </footer>
@@ -590,7 +632,7 @@ function trendStr(arr,n=7){
 }
 
 Chart.defaults.color='#6b7280';
-Chart.defaults.borderColor='#252a3a';
+Chart.defaults.borderColor='#3D3D3A';
 Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 
 const charts={};
@@ -598,15 +640,15 @@ function destroyAll(){Object.values(charts).forEach(c=>c.destroy());Object.keys(
 
 function makeRing(id,score,color){
   const ctx=document.getElementById(id);if(!ctx)return;
-  return new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[score||0,100-(score||0)],backgroundColor:[color,'#1c202e'],borderWidth:0,borderRadius:4}]},options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:800,easing:'easeOutQuart'}}});
+  return new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[score||0,100-(score||0)],backgroundColor:[color,'#222220'],borderWidth:0,borderRadius:4}]},options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:800,easing:'easeOutQuart'}}});
 }
 function makeLine(id,labels,datasets,opts={}){
   const ctx=document.getElementById(id);if(!ctx)return;
-  return new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:opts.legend??true,position:'top',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:16}},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10,titleFont:{weight:'700'}}},scales:{x:{grid:{color:'#1c202e'},ticks:{maxTicksLimit:opts.maxTicks||10,maxRotation:0}},y:{grid:{color:'#1c202e'},min:opts.yMin,max:opts.yMax,ticks:{stepSize:opts.stepSize}}},elements:{point:{radius:2,hoverRadius:5},line:{tension:0.35}}}});
+  return new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:opts.legend??true,position:'top',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:16}},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10,titleFont:{weight:'700'}}},scales:{x:{grid:{color:'#222220'},ticks:{maxTicksLimit:opts.maxTicks||10,maxRotation:0}},y:{grid:{color:'#222220'},min:opts.yMin,max:opts.yMax,ticks:{stepSize:opts.stepSize}}},elements:{point:{radius:2,hoverRadius:5},line:{tension:0.35}}}});
 }
 function makeBar(id,labels,datasets,opts={}){
   const ctx=document.getElementById(id);if(!ctx)return;
-  return new Chart(ctx,{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend??false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},scales:{x:{grid:{display:false},stacked:opts.stacked},y:{grid:{color:'#1c202e'},min:opts.yMin||0,stacked:opts.stacked}},borderRadius:4}});
+  return new Chart(ctx,{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend??false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10}},scales:{x:{grid:{display:false},stacked:opts.stacked},y:{grid:{color:'#222220'},min:opts.yMin||0,stacked:opts.stacked}},borderRadius:4}});
 }
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
@@ -631,7 +673,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
 
 // ── Heatmap ──────────────────────────────────────────────────────────────────
 function heatmapColor(s){
-  if(!s)return'#1c202e';
+  if(!s)return'#222220';
   if(s>=85)return'rgba(34,197,94,.9)';
   if(s>=75)return'rgba(34,197,94,.55)';
   if(s>=70)return'rgba(59,130,246,.7)';
@@ -791,12 +833,12 @@ function render(d){
     {label:'Activity', data:scores.activity.slice(-N30), borderColor:'#f97316',backgroundColor:'rgba(249,115,22,.08)',fill:true},
   ],{yMin:40,yMax:100,stepSize:10,maxTicks:10});
 
-  charts.arch = new Chart(document.getElementById('chartArch'),{type:'doughnut',data:{labels:['Light','REM','Deep'],datasets:[{data:[latest.arch.light_pct,latest.arch.rem_pct,latest.arch.deep_pct],backgroundColor:['#6366f1','#a855f7','#3b82f6'],borderWidth:0,borderRadius:3}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},animation:{duration:800}}});
+  charts.arch = new Chart(document.getElementById('chartArch'),{type:'doughnut',data:{labels:['Light','REM','Deep'],datasets:[{data:[latest.arch.light_pct,latest.arch.rem_pct,latest.arch.deep_pct],backgroundColor:['#6366f1','#a855f7','#3b82f6'],borderWidth:0,borderRadius:3}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10}},animation:{duration:800}}});
 
   const contribKeys=['deep_sleep','rem_sleep','restfulness','efficiency','latency','timing','total_sleep'];
   const contribLabels=['Deep Sleep','REM Sleep','Restfulness','Efficiency','Latency','Timing','Total Sleep'];
   const sc=latest.contributors.sleep;
-  charts.contrib = new Chart(document.getElementById('chartContrib'),{type:'bar',data:{labels:contribLabels,datasets:[{label:'Score',data:contribKeys.map(k=>sc[k]??null),backgroundColor:contribKeys.map(k=>{const v=sc[k]??0;return v>=80?'rgba(34,197,94,.7)':v>=60?'rgba(59,130,246,.7)':v>=40?'rgba(245,158,11,.7)':'rgba(239,68,68,.7)'}),borderRadius:4,borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},scales:{x:{min:0,max:100,grid:{color:'#1c202e'}},y:{grid:{display:false}}}}});
+  charts.contrib = new Chart(document.getElementById('chartContrib'),{type:'bar',data:{labels:contribLabels,datasets:[{label:'Score',data:contribKeys.map(k=>sc[k]??null),backgroundColor:contribKeys.map(k=>{const v=sc[k]??0;return v>=80?'rgba(34,197,94,.7)':v>=60?'rgba(59,130,246,.7)':v>=40?'rgba(245,158,11,.7)':'rgba(239,68,68,.7)'}),borderRadius:4,borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10}},scales:{x:{min:0,max:100,grid:{color:'#222220'}},y:{grid:{display:false}}}}});
 
   // ── FORECAST PAGE ──────────────────────────────────────────────────────────
   const today_score = latest.ready;
@@ -903,7 +945,7 @@ function render(d){
   charts.deep  = makeLine('chartDeep',  allLabels, [{label:'Deep Sleep', data:scores.deep,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',fill:true}],{legend:false,yMin:0,yMax:100,maxTicks:12});
   charts.steps = makeBar('chartSteps',  labels30,  [{label:'Steps',data:scores.steps.slice(-N30),backgroundColor:scores.steps.slice(-N30).map(s=>s>=8000?'rgba(34,197,94,.7)':s>=5000?'rgba(59,130,246,.5)':'rgba(239,68,68,.4)')}],{legend:false});
   charts.dow   = makeBar('chartDOW',    dow.labels,[{label:'Sleep avg',data:dow.sleep,backgroundColor:'rgba(59,130,246,.6)'},{label:'Readiness avg',data:dow.ready,backgroundColor:'rgba(34,197,94,.6)'}],{legend:true,yMin:60,yMax:90});
-  charts.temp  = new Chart(document.getElementById('chartTemp'),{type:'bar',data:{labels:allLabels,datasets:[{label:'Temp deviation',data:scores.temp,backgroundColor:scores.temp.map(v=>v==null?'transparent':v>0.5?'rgba(239,68,68,.7)':v<-0.5?'rgba(59,130,246,.7)':'rgba(107,114,128,.4)'),borderRadius:2,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10,callbacks:{label:ctx=>`${ctx.raw>0?'+':''}${ctx.raw?.toFixed(2)??'—'}°C`}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},y:{grid:{color:'#1c202e'},ticks:{callback:v=>`${v>0?'+':''}${v}°`}}}}});
+  charts.temp  = new Chart(document.getElementById('chartTemp'),{type:'bar',data:{labels:allLabels,datasets:[{label:'Temp deviation',data:scores.temp,backgroundColor:scores.temp.map(v=>v==null?'transparent':v>0.5?'rgba(239,68,68,.7)':v<-0.5?'rgba(59,130,246,.7)':'rgba(107,114,128,.4)'),borderRadius:2,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10,callbacks:{label:ctx=>`${ctx.raw>0?'+':''}${ctx.raw?.toFixed(2)??'—'}°C`}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},y:{grid:{color:'#222220'},ticks:{callback:v=>`${v>0?'+':''}${v}°`}}}}});
 
   const debtVals = debt_log.map(d=>d.cumulative);
   charts.debt = makeLine('chartDebt', debt_log.map(d=>shortDate(d.date)), [
@@ -917,7 +959,7 @@ function render(d){
     charts.workoutMin = makeBar('chartWorkoutMin', wLabels, [{
       label:'Active minutes',
       data: wMin,
-      backgroundColor: wMin.map(v => v>=45?'rgba(99,102,241,.75)':v>0?'rgba(99,102,241,.4)':'rgba(99,102,241,.1)'),
+      backgroundColor: wMin.map(v => v>=45?'rgba(93,202,165,.75)':v>0?'rgba(93,202,165,.4)':'rgba(93,202,165,.1)'),
     }],{legend:false});
   }
   if (workouts?.activity_counts && document.getElementById('chartActivityType')) {
@@ -930,7 +972,7 @@ function render(d){
       data:{labels:actLabels,datasets:[{data:actData,backgroundColor:actColors.slice(0,actLabels.length),borderWidth:0}]},
       options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
                plugins:{legend:{position:'right',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:10,font:{size:11}}},
-                        tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8}}}
+                        tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:8}}}
     });
   }
 
@@ -950,7 +992,7 @@ function render(d){
 
   // ── INSIGHTS PAGE ──────────────────────────────────────────────────────────
   document.getElementById('insights').innerHTML=`
-  <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;font-size:13px;color:var(--muted);line-height:1.6">
+  <div style="background:rgba(93,202,165,.06);border:1px solid rgba(93,202,165,.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;font-size:13px;color:var(--muted);line-height:1.6">
     <strong style="color:var(--text)">Your Ring Edge</strong> — 24-hour sleep & recovery intelligence built from your personal data patterns, not generic advice. Data reflects your most recent Oura sync.
   </div>
 
@@ -1033,7 +1075,7 @@ function recoveryIntelHTML(debt, log, ri, optimalBed){
 
   const latency = ri?.avg_latency_min || payback_plan?.avg_latency_min || 15;
   const bedtimeCTA = bedtime ? `
-    <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:14px 18px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="background:rgba(93,202,165,.1);border:1px solid rgba(93,202,165,.25);border-radius:12px;padding:14px 18px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:4px">🛏️ Get In Bed By</div>
         <div style="font-size:36px;font-weight:900;letter-spacing:-1px;color:var(--text);line-height:1">${bedtime}</div>
@@ -1383,7 +1425,7 @@ function tonightCardHTML(card, ci) {
   if (sd && sd.threshold && sd.today_steps != null) {
     const pct = Math.min(100, Math.round((sd.today_steps / sd.threshold) * 100));
     const reached = sd.today_steps >= sd.threshold;
-    const barColor = reached ? '#22c55e' : pct >= 60 ? '#f59e0b' : '#6366f1';
+    const barColor = reached ? '#22c55e' : pct >= 60 ? '#f59e0b' : '#5DCAA5';
     const stepsGapMsg = reached
       ? `✅ You've cleared ${sd.threshold.toLocaleString()} steps — your deep sleep sweet spot.`
       : `${sd.steps_gap.toLocaleString()} steps short of your ${sd.threshold.toLocaleString()}-step deep sleep threshold (+${sd.diff_min ?? '?'}min deep sleep on step-heavy days).`;
@@ -1554,7 +1596,7 @@ function renderSleepScience(hyp, dec) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#1c202e', borderColor: '#252a3a', borderWidth: 1, padding: 8,
+            backgroundColor: '#222220', borderColor: '#3D3D3A', borderWidth: 1, padding: 8,
             callbacks: {
               title: ctx => ctx[0].label,
               label: ctx => {
@@ -1577,7 +1619,7 @@ function renderSleepScience(hyp, dec) {
               callback: v => STAGE_LABELS[v] || '',
               font: { size: 10 }
             },
-            grid: { color: '#1c202e' }
+            grid: { color: '#222220' }
           }
         }
       }
@@ -1620,7 +1662,7 @@ function renderSleepScience(hyp, dec) {
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#1c202e', borderColor: '#252a3a', borderWidth: 1, padding: 8,
+              backgroundColor: '#222220', borderColor: '#3D3D3A', borderWidth: 1, padding: 8,
               callbacks: {
                 title: ctx => ctx[0].label,
                 label: ctx => {
@@ -1638,7 +1680,7 @@ function renderSleepScience(hyp, dec) {
             yStage: {
               position: 'left', min: -0.5, max: 3.5,
               ticks: { stepSize:1, callback: v=>['Deep','REM','Light','Awake'][v]||'', font:{size:10} },
-              grid: { color:'#1c202e' }
+              grid: { color:'#222220' }
             },
             yHR: {
               position: 'right',
@@ -1698,11 +1740,11 @@ function renderSleepScience(hyp, dec) {
         responsive:true, maintainAspectRatio:false,
         plugins:{
           legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:12}},
-          tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8}
+          tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:8}
         },
         scales:{
           x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0,font:{size:10}}},
-          y:{grid:{color:'#1c202e'},min:0,max:120,ticks:{callback:v=>v+'m'}}
+          y:{grid:{color:'#222220'},min:0,max:120,ticks:{callback:v=>v+'m'}}
         }
       }
     });
@@ -1743,7 +1785,7 @@ function renderSleepScience(hyp, dec) {
         plugins:{
           legend:{display:false},
           tooltip:{
-            backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8,
+            backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:8,
             callbacks:{
               label: c => {
                 const stageColor = stageForHR[c.dataIndex];
@@ -1755,7 +1797,7 @@ function renderSleepScience(hyp, dec) {
         },
         scales:{
           x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0,font:{size:10}}},
-          y:{grid:{color:'#1c202e'},ticks:{callback:v=>v+' bpm'}}
+          y:{grid:{color:'#222220'},ticks:{callback:v=>v+' bpm'}}
         }
       }
     });
@@ -2070,8 +2112,8 @@ function renderVitals(v, days, user, res, ci) {
         const gap = cc.gap; // user_age - vascular_age; positive = younger
         const gapAbs = Math.abs(gap);
         const gapColor = gap >= 5 ? '#22c55e' : gap >= 1 ? 'var(--accent)' : gap <= -3 ? '#ef4444' : '#f59e0b';
-        const gapBg   = gap >= 5 ? 'rgba(34,197,94,.1)' : gap >= 1 ? 'rgba(99,102,241,.1)' : gap <= -3 ? 'rgba(239,68,68,.1)' : 'rgba(245,158,11,.1)';
-        const gapBdr  = gap >= 5 ? 'rgba(34,197,94,.25)' : gap >= 1 ? 'rgba(99,102,241,.25)' : gap <= -3 ? 'rgba(239,68,68,.25)' : 'rgba(245,158,11,.25)';
+        const gapBg   = gap >= 5 ? 'rgba(34,197,94,.1)' : gap >= 1 ? 'rgba(93,202,165,.1)' : gap <= -3 ? 'rgba(239,68,68,.1)' : 'rgba(245,158,11,.1)';
+        const gapBdr  = gap >= 5 ? 'rgba(34,197,94,.25)' : gap >= 1 ? 'rgba(93,202,165,.25)' : gap <= -3 ? 'rgba(239,68,68,.25)' : 'rgba(245,158,11,.25)';
         const gapLabel = gap > 0 ? `${gapAbs} yr${gapAbs!==1?'s':''} younger than your age` : gap < 0 ? `${gapAbs} yr${gapAbs!==1?'s':''} older than your age` : 'Matches your chronological age';
         const benchmark = gap >= 6 ? 'Top 10% cardiovascular health' : gap >= 3 ? 'Above average — keep it up' : gap >= 0 ? 'Average for your demographic' : 'Below average — cardio training helps';
         return `
@@ -2108,7 +2150,7 @@ function renderVitals(v, days, user, res, ci) {
       `<div style="color:var(--muted);padding:20px 0;font-size:13px">Stress data requires Oura's Stress feature (Ring 4 or compatible subscription).</div>`}
   </div>
 
-  <div class="card full" style="background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(168,85,247,.06));border-color:rgba(99,102,241,.2)">
+  <div class="card full" style="background:linear-gradient(135deg,rgba(93,202,165,.06),rgba(93,202,165,.02));border-color:rgba(93,202,165,.2)">
     <div class="card-title">📖 What These Metrics Mean</div>
     <div class="g3" style="margin-top:8px">
       <div>
@@ -2131,7 +2173,7 @@ function renderVitals(v, days, user, res, ci) {
     // Resilience ring in vitals
     if (resLvl && document.getElementById('resRingVitals')) {
       new Chart(document.getElementById('resRingVitals'),{type:'doughnut',
-        data:{datasets:[{data:[resScoreV,100-resScoreV],backgroundColor:[resClr,'#1c202e'],borderWidth:0,borderRadius:4}]},
+        data:{datasets:[{data:[resScoreV,100-resScoreV],backgroundColor:[resClr,'#222220'],borderWidth:0,borderRadius:4}]},
         options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:600}}
       });
     }
@@ -2144,7 +2186,7 @@ function renderVitals(v, days, user, res, ci) {
               datasets:[{data:res.numeric,borderColor:resClr,backgroundColor:resClr.replace(')',',0.1)').replace('rgb','rgba'),
                          borderWidth:2,pointRadius:0,tension:.3,fill:true,spanGaps:true}]},
         options:{responsive:true,plugins:{legend:{display:false},
-          tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8,
+          tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:8,
             callbacks:{label:ctx=>{const lvl=res.levels[ctx.dataIndex];return lvl?lvl.charAt(0).toUpperCase()+lvl.slice(1):'No data'}}}},
           scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,maxRotation:0,font:{size:10}}},
                   y:{min:0,max:100,grid:{color:'rgba(255,255,255,.05)'},ticks:{callback:v=>LEVEL_LABELS[v]||'',font:{size:10}},

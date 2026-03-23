@@ -7,11 +7,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg:#0d0f14; --surface:#151820; --surface2:#1c202e; --border:#252a3a;
-  --text:#e8eaf0; --muted:#6b7280;
+  --bg:#151514; --surface:#1A1A18; --surface2:#222220; --border:#3D3D3A;
+  --text:#E8E6DF; --muted:#9C9A92;
   --green:#22c55e; --yellow:#f59e0b; --red:#ef4444;
   --blue:#3b82f6; --purple:#a855f7; --cyan:#06b6d4; --orange:#f97316;
-  --accent:#6366f1;
+  --accent:#5DCAA5;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5}
@@ -65,7 +65,7 @@ main{max-width:1400px;margin:0 auto;padding:24px 28px}
 .forecast-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px}
 .forecast-day{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;transition:transform .15s}
 .forecast-day:hover{transform:translateY(-2px)}
-.forecast-day.weekend{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.05)}
+.forecast-day.weekend{border-color:rgba(93,202,165,.3);background:rgba(93,202,165,.05)}
 .fc-dow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
 .fc-date{font-size:11px;color:var(--muted);margin-bottom:10px}
 .fc-score{font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
@@ -122,7 +122,7 @@ main{max-width:1400px;margin:0 auto;padding:24px 28px}
 /* Badge */
 .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:4px;margin-left:8px}
 .badge.live{background:rgba(34,197,94,.15);color:var(--green)}
-.badge.new{background:rgba(99,102,241,.15);color:var(--accent)}
+.badge.new{background:rgba(93,202,165,.15);color:var(--accent)}
 
 /* Loading */
 .loading{display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px}
@@ -145,7 +145,7 @@ main{max-width:1400px;margin:0 auto;padding:24px 28px}
 .finding-impact.high{background:rgba(239,68,68,.15);color:#ef4444}
 .finding-impact.medium{background:rgba(245,158,11,.15);color:#f59e0b}
 .finding-body{font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.6}
-.finding-action{font-size:13px;font-weight:600;color:var(--accent);padding:8px 12px;background:rgba(99,102,241,.08);border-radius:8px;border:1px solid rgba(99,102,241,.15)}
+.finding-action{font-size:13px;font-weight:600;color:var(--accent);padding:8px 12px;background:rgba(93,202,165,.08);border-radius:8px;border:1px solid rgba(93,202,165,.15)}
 .nights-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .night-pill{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px}
 .night-pill .deep{font-size:18px;font-weight:800;display:block;margin-bottom:2px}
@@ -176,7 +176,22 @@ canvas{display:block}
 <body>
 
 <header>
-  <h1>🩺 <span>Tyler's</span> Health Dashboard <span style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle">v2.0</span></h1>
+  <a href="/" class="re-logo" aria-label="Ring Edge home" style="display:flex;align-items:center;text-decoration:none;flex-shrink:0">
+    <svg width="160" height="36" viewBox="0 0 280 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(28, 28)">
+        <circle cx="0" cy="0" r="18" stroke="#E8E6DF" stroke-width="4" stroke-dasharray="99 15" stroke-dashoffset="7.5"/>
+        <path d="M 7.5,-15 L -2.5,4 L 1.5,-5 L -7.5,15" stroke="#5DCAA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="7.5" cy="-15" r="1.5" fill="#5DCAA5"/>
+        <circle cx="-7.5" cy="15" r="1.5" fill="#5DCAA5"/>
+        <rect x="-2" y="5" width="2.5" height="4" rx="0.5" fill="#5DCAA5" opacity="0.5"/>
+        <rect x="2" y="5" width="2.5" height="6" rx="0.5" fill="#5DCAA5" opacity="0.7"/>
+        <rect x="6" y="5" width="2.5" height="8" rx="0.5" fill="#5DCAA5"/>
+      </g>
+      <text x="60" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="500" letter-spacing="3" fill="#E8E6DF">Ring</text>
+      <text x="130" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="500" letter-spacing="3" fill="#5DCAA5">Edge</text>
+    </svg>
+  </a>
+  <span style="font-size:11px;font-weight:500;background:rgba(93,202,165,.15);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:8px;flex-shrink:0">v2.0</span>
   <div class="header-right">
     <div class="dot"></div>
     <div class="date-badge" id="dateLabel">Loading…</div>
@@ -217,7 +232,7 @@ function trendStr(arr,n=7){
 }
 
 Chart.defaults.color='#6b7280';
-Chart.defaults.borderColor='#252a3a';
+Chart.defaults.borderColor='#3D3D3A';
 Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 
 const charts={};
@@ -225,15 +240,15 @@ function destroyAll(){Object.values(charts).forEach(c=>c.destroy());Object.keys(
 
 function makeRing(id,score,color){
   const ctx=document.getElementById(id);if(!ctx)return;
-  return new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[score||0,100-(score||0)],backgroundColor:[color,'#1c202e'],borderWidth:0,borderRadius:4}]},options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:800,easing:'easeOutQuart'}}});
+  return new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[score||0,100-(score||0)],backgroundColor:[color,'#222220'],borderWidth:0,borderRadius:4}]},options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:800,easing:'easeOutQuart'}}});
 }
 function makeLine(id,labels,datasets,opts={}){
   const ctx=document.getElementById(id);if(!ctx)return;
-  return new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:opts.legend??true,position:'top',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:16}},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10,titleFont:{weight:'700'}}},scales:{x:{grid:{color:'#1c202e'},ticks:{maxTicksLimit:opts.maxTicks||10,maxRotation:0}},y:{grid:{color:'#1c202e'},min:opts.yMin,max:opts.yMax,ticks:{stepSize:opts.stepSize}}},elements:{point:{radius:2,hoverRadius:5},line:{tension:0.35}}}});
+  return new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:opts.legend??true,position:'top',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:16}},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10,titleFont:{weight:'700'}}},scales:{x:{grid:{color:'#222220'},ticks:{maxTicksLimit:opts.maxTicks||10,maxRotation:0}},y:{grid:{color:'#222220'},min:opts.yMin,max:opts.yMax,ticks:{stepSize:opts.stepSize}}},elements:{point:{radius:2,hoverRadius:5},line:{tension:0.35}}}});
 }
 function makeBar(id,labels,datasets,opts={}){
   const ctx=document.getElementById(id);if(!ctx)return;
-  return new Chart(ctx,{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend??false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},scales:{x:{grid:{display:false},stacked:opts.stacked},y:{grid:{color:'#1c202e'},min:opts.yMin||0,stacked:opts.stacked}},borderRadius:4}});
+  return new Chart(ctx,{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend??false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10}},scales:{x:{grid:{display:false},stacked:opts.stacked},y:{grid:{color:'#222220'},min:opts.yMin||0,stacked:opts.stacked}},borderRadius:4}});
 }
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
@@ -248,7 +263,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
 
 // ── Heatmap ──────────────────────────────────────────────────────────────────
 function heatmapColor(s){
-  if(!s)return'#1c202e';
+  if(!s)return'#222220';
   if(s>=85)return'rgba(34,197,94,.9)';
   if(s>=75)return'rgba(34,197,94,.55)';
   if(s>=70)return'rgba(59,130,246,.7)';
@@ -349,12 +364,12 @@ function render(d){
     {label:'Activity', data:scores.activity.slice(-N30), borderColor:'#f97316',backgroundColor:'rgba(249,115,22,.08)',fill:true},
   ],{yMin:40,yMax:100,stepSize:10,maxTicks:10});
 
-  charts.arch = new Chart(document.getElementById('chartArch'),{type:'doughnut',data:{labels:['Light','REM','Deep'],datasets:[{data:[latest.arch.light_pct,latest.arch.rem_pct,latest.arch.deep_pct],backgroundColor:['#6366f1','#a855f7','#3b82f6'],borderWidth:0,borderRadius:3}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},animation:{duration:800}}});
+  charts.arch = new Chart(document.getElementById('chartArch'),{type:'doughnut',data:{labels:['Light','REM','Deep'],datasets:[{data:[latest.arch.light_pct,latest.arch.rem_pct,latest.arch.deep_pct],backgroundColor:['#6366f1','#a855f7','#3b82f6'],borderWidth:0,borderRadius:3}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10}},animation:{duration:800}}});
 
   const contribKeys=['deep_sleep','rem_sleep','restfulness','efficiency','latency','timing','total_sleep'];
   const contribLabels=['Deep Sleep','REM Sleep','Restfulness','Efficiency','Latency','Timing','Total Sleep'];
   const sc=latest.contributors.sleep;
-  charts.contrib = new Chart(document.getElementById('chartContrib'),{type:'bar',data:{labels:contribLabels,datasets:[{label:'Score',data:contribKeys.map(k=>sc[k]??null),backgroundColor:contribKeys.map(k=>{const v=sc[k]??0;return v>=80?'rgba(34,197,94,.7)':v>=60?'rgba(59,130,246,.7)':v>=40?'rgba(245,158,11,.7)':'rgba(239,68,68,.7)'}),borderRadius:4,borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10}},scales:{x:{min:0,max:100,grid:{color:'#1c202e'}},y:{grid:{display:false}}}}});
+  charts.contrib = new Chart(document.getElementById('chartContrib'),{type:'bar',data:{labels:contribLabels,datasets:[{label:'Score',data:contribKeys.map(k=>sc[k]??null),backgroundColor:contribKeys.map(k=>{const v=sc[k]??0;return v>=80?'rgba(34,197,94,.7)':v>=60?'rgba(59,130,246,.7)':v>=40?'rgba(245,158,11,.7)':'rgba(239,68,68,.7)'}),borderRadius:4,borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10}},scales:{x:{min:0,max:100,grid:{color:'#222220'}},y:{grid:{display:false}}}}});
 
   // ── FORECAST PAGE ──────────────────────────────────────────────────────────
   const today_score = latest.ready;
@@ -431,7 +446,7 @@ function render(d){
   charts.deep  = makeLine('chartDeep',  allLabels, [{label:'Deep Sleep', data:scores.deep,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',fill:true}],{legend:false,yMin:0,yMax:100,maxTicks:12});
   charts.steps = makeBar('chartSteps',  labels30,  [{label:'Steps',data:scores.steps.slice(-N30),backgroundColor:scores.steps.slice(-N30).map(s=>s>=8000?'rgba(34,197,94,.7)':s>=5000?'rgba(59,130,246,.5)':'rgba(239,68,68,.4)')}],{legend:false});
   charts.dow   = makeBar('chartDOW',    dow.labels,[{label:'Sleep avg',data:dow.sleep,backgroundColor:'rgba(59,130,246,.6)'},{label:'Readiness avg',data:dow.ready,backgroundColor:'rgba(34,197,94,.6)'}],{legend:true,yMin:60,yMax:90});
-  charts.temp  = new Chart(document.getElementById('chartTemp'),{type:'bar',data:{labels:allLabels,datasets:[{label:'Temp deviation',data:scores.temp,backgroundColor:scores.temp.map(v=>v==null?'transparent':v>0.5?'rgba(239,68,68,.7)':v<-0.5?'rgba(59,130,246,.7)':'rgba(107,114,128,.4)'),borderRadius:2,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:10,callbacks:{label:ctx=>`${ctx.raw>0?'+':''}${ctx.raw?.toFixed(2)??'—'}°C`}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},y:{grid:{color:'#1c202e'},ticks:{callback:v=>`${v>0?'+':''}${v}°`}}}}});
+  charts.temp  = new Chart(document.getElementById('chartTemp'),{type:'bar',data:{labels:allLabels,datasets:[{label:'Temp deviation',data:scores.temp,backgroundColor:scores.temp.map(v=>v==null?'transparent':v>0.5?'rgba(239,68,68,.7)':v<-0.5?'rgba(59,130,246,.7)':'rgba(107,114,128,.4)'),borderRadius:2,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:10,callbacks:{label:ctx=>`${ctx.raw>0?'+':''}${ctx.raw?.toFixed(2)??'—'}°C`}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},y:{grid:{color:'#222220'},ticks:{callback:v=>`${v>0?'+':''}${v}°`}}}}});
 
   const debtVals = debt_log.map(d=>d.cumulative);
   charts.debt = makeLine('chartDebt', debt_log.map(d=>shortDate(d.date)), [
@@ -724,7 +739,7 @@ function renderSleepScience(hyp, dec) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#1c202e', borderColor: '#252a3a', borderWidth: 1, padding: 8,
+            backgroundColor: '#222220', borderColor: '#3D3D3A', borderWidth: 1, padding: 8,
             callbacks: {
               title: ctx => ctx[0].label,
               label: ctx => {
@@ -747,7 +762,7 @@ function renderSleepScience(hyp, dec) {
               callback: v => STAGE_LABELS[v] || '',
               font: { size: 10 }
             },
-            grid: { color: '#1c202e' }
+            grid: { color: '#222220' }
           }
         }
       }
@@ -790,7 +805,7 @@ function renderSleepScience(hyp, dec) {
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#1c202e', borderColor: '#252a3a', borderWidth: 1, padding: 8,
+              backgroundColor: '#222220', borderColor: '#3D3D3A', borderWidth: 1, padding: 8,
               callbacks: {
                 title: ctx => ctx[0].label,
                 label: ctx => {
@@ -808,7 +823,7 @@ function renderSleepScience(hyp, dec) {
             yStage: {
               position: 'left', min: -0.5, max: 3.5,
               ticks: { stepSize:1, callback: v=>['Deep','REM','Light','Awake'][v]||'', font:{size:10} },
-              grid: { color:'#1c202e' }
+              grid: { color:'#222220' }
             },
             yHR: {
               position: 'right',
@@ -868,11 +883,11 @@ function renderSleepScience(hyp, dec) {
         responsive:true, maintainAspectRatio:false,
         plugins:{
           legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6,padding:12}},
-          tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8}
+          tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:8}
         },
         scales:{
           x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0,font:{size:10}}},
-          y:{grid:{color:'#1c202e'},min:0,max:120,ticks:{callback:v=>v+'m'}}
+          y:{grid:{color:'#222220'},min:0,max:120,ticks:{callback:v=>v+'m'}}
         }
       }
     });
@@ -897,10 +912,10 @@ function renderSleepScience(hyp, dec) {
       },
       options: {
         responsive:true, maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c202e',borderColor:'#252a3a',borderWidth:1,padding:8,callbacks:{label:c=>`${Math.round(c.raw)} bpm`}}},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#222220',borderColor:'#3D3D3A',borderWidth:1,padding:8,callbacks:{label:c=>`${Math.round(c.raw)} bpm`}}},
         scales:{
           x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0,font:{size:10}}},
-          y:{grid:{color:'#1c202e'},ticks:{callback:v=>v+' bpm'}}
+          y:{grid:{color:'#222220'},ticks:{callback:v=>v+' bpm'}}
         }
       }
     });
