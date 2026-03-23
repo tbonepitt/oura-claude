@@ -517,7 +517,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <button class="demo-exit-btn" onclick="exitDemo()">Connect Ring →</button>
 </div>
 
-<nav>
+<nav id="appNav" style="display:none">
   <div class="tab active" data-page="insights">Insights</div>
   <div class="tab" data-page="today">Overview</div>
   <div class="tab" data-page="forecast">7-Day Forecast</div>
@@ -537,7 +537,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <span style="opacity:.5">Data updates after your ring syncs each morning</span>
 </div>
 
-<main>
+<main id="appMain" style="display:none">
   <div id="insights" class="page active"></div>
   <div id="today" class="page"></div>
   <div id="forecast" class="page"></div>
@@ -548,7 +548,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <div id="profile" class="page"></div>
 </main>
 
-<footer class="site-footer">
+<footer class="site-footer" id="appFooter" style="display:none">
   <span class="footer-bot">⚡ Powered by SaintlyBot and Claude Code</span>
   <span class="sep">·</span>
   <a href="https://saintlydigital.com" target="_blank">saintlydigital.com</a>
@@ -2226,10 +2226,16 @@ async function loadData(){
       anomalies:     d.anomalies?.length ?? 0,
     });
     loader.classList.remove('visible');
+    document.getElementById('appNav').style.display = '';
+    document.getElementById('appMain').style.display = '';
+    document.getElementById('appFooter').style.display = '';
     render(d);
     showFeedbackWidget();
   } catch(e) {
     loader.classList.remove('visible');
+    document.getElementById('appNav').style.display = '';
+    document.getElementById('appMain').style.display = '';
+    document.getElementById('appFooter').style.display = '';
     track('dashboard_error');
     document.getElementById('insights').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data. Check your token or try again.</div></div>';
   }
