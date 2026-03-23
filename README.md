@@ -1,39 +1,35 @@
-# 🩺 Oura Health Dashboard v3.0
+# Ring Edge v4.0
 
-A personal health intelligence dashboard for Oura Ring — works as a hosted web app or locally. No setup required.
+Sleep debt tracking, 7-day readiness forecast, and deep sleep analysis — built on your own ring data, updated daily.
 
-**[→ Try it live](https://oura-claude.vercel.app)** — paste your Oura token and go.
-
----
-
-## Features
-
-### v3.0 — Web App
-- **Token-based onboarding** — paste your Oura Personal Access Token in the browser, see your data instantly
-- **Works for anyone** — no installation, no config files, no terminal
-- **Privacy-first** — your token lives only in your browser's localStorage, sent directly to the Oura API
-
-### v2.0 — Sleep Science
-- **Sleep Cycle Explainer** — your actual hypnogram (deep/light/REM/awake) visualized with heart rate overlay
-- **Deep Sleep Decoder** — compares your top 25% vs bottom 25% deep sleep nights to find *your* personal triggers
-- **Tonight's Sleep Plan** — 2 specific, personalized actions you can take tonight
-
-### v1.0 — Core Analytics
-- **7-Day Readiness Forecast** — predicted readiness scores based on your 60-day personal patterns
-- **Anomaly Detector** — flags crash days and auto-detects likely causes
-- **Personal Correlations** — finds relationships unique to *your* biology
-- **Sleep Debt Tracker** — 30-day running deficit with payback estimate
-- **60-Day Heatmap** — full readiness history at a glance
+**[→ Try it live](https://oura-claude.vercel.app)** — connect your account and go.
 
 ---
 
-## Use it online (recommended)
+## What it shows you
+
+- 📉 **Cumulative sleep debt** — 30-day running total vs your personal target, with a payback plan
+- 🛏️ **Get In Bed By** — personalized bedtime including your avg sleep latency
+- 📈 **7-day readiness forecast** — built from your own 60-day patterns
+- 😴 **Why your deep sleep is low** — correlates your data (steps, bedtime) to find your patterns
+- 🏆 **Personal records** — best deep sleep, HRV, readiness with dates
+- 📅 **Weekly sleep patterns** — your best and worst days of the week
+- ❤️ **Heart rate during sleep** — colored by sleep stage
+- 🔍 **Anomaly detection** — flags crash days and likely causes
+
+---
+
+## How it works
+
+Ring Edge uses the Oura API to fetch your personal sleep and activity data. Your API token stays in your browser — nothing is stored on our servers. Data reflects your most recent Oura sync (updated daily, not real-time).
+
+---
+
+## Use it online
 
 1. Go to **[oura-claude.vercel.app](https://oura-claude.vercel.app)**
-2. Get a token at [cloud.ouraring.com/personal-access-tokens](https://cloud.ouraring.com/personal-access-tokens)
-3. Paste it in — your dashboard loads instantly
-
-Your token is stored only in your browser. It's never saved on any server.
+2. Connect your Oura account via OAuth or paste your [Personal Access Token](https://cloud.ouraring.com/personal-access-tokens)
+3. Your dashboard loads instantly
 
 ---
 
@@ -42,58 +38,36 @@ Your token is stored only in your browser. It's never saved on any server.
 ```bash
 git clone https://github.com/tbonepitt/oura-claude.git
 cd oura-claude
-./run.sh
+pip install flask
+cd api && python index.py
 ```
 
-Then open [http://localhost:7891](http://localhost:7891) and paste your token in the browser.
-
-**Optional:** Create a `.env` file to skip the token prompt:
-```bash
-cp .env.example .env
-# Edit .env and add your token — browser prompt will be skipped
-```
+Open [http://localhost:5000](http://localhost:5000) and connect your account.
 
 ---
 
 ## Deploy your own instance
 
-### Vercel (free, 1 click)
 1. Fork this repo on GitHub
-2. Go to [vercel.com](https://vercel.com) → **Add New Project** → import your fork
-3. Deploy — done. Your own private instance is live.
+2. Go to [vercel.com](https://vercel.com) → Add New Project → import your fork
+3. Deploy — done
 
 ---
 
-## File structure
+## Tech stack
 
-| File | What it does |
-|------|-------------|
-| `api/data.py` | Vercel serverless function — fetches Oura data, runs all analysis |
-| `public/index.html` | The dashboard UI — used by both hosted and local modes |
-| `dashboard/server.py` | Local HTTP server — serves `public/index.html` and proxies `/api/data` |
-| `vercel.json` | Vercel routing config |
-| `run.sh` | Local launcher |
+- Python / Flask (Vercel serverless)
+- Vanilla JS / Chart.js
+- Upstash Vector (feedback storage)
+- Vercel Analytics + Speed Insights
+- GitHub Actions CI (101 tests)
 
 ---
 
-## How the Deep Sleep Decoder works
+## Data attribution
 
-Splits your last 60 nights into top 25% and bottom 25% by deep sleep, then compares:
-- **Steps** — did you move more on your best nights?
-- **Bedtime** — is there an optimal window for your chronotype?
-- **Calories** — does activity drive deeper sleep?
-- **Restlessness** — do restless nights cluster?
-
-Each finding becomes a plain-English action.
+Data provided by [Oura](https://ouraring.com). Ring Edge is an independent third-party application and is not affiliated with or endorsed by Ōura Health Oy.
 
 ---
 
-## Privacy
-
-- Your token is stored in `localStorage` — never on any server
-- All analysis runs server-side in the serverless function, but no data is persisted
-- The local version is fully offline after startup (data goes browser → local server → Oura API)
-
----
-
-Built with [Claude](https://claude.ai) + the Oura API.
+Built with [Claude Code](https://claude.ai) and the Oura API.

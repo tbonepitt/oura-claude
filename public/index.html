@@ -4,9 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Ring Edge</title>
-<meta name="description" content="Deeper insights from your Oura Ring. 7-day readiness forecast, personal sleep correlations, anomaly detection and more.">
+<meta name="description" content="Deeper insights from your ring data. 7-day readiness forecast, sleep debt tracking, personal correlations and anomaly detection.">
 <meta property="og:title" content="Ring Edge — Personal Sleep Intelligence">
-<meta property="og:description" content="Deeper insights from your Oura Ring. 7-day readiness forecast, personal sleep correlations, anomaly detection.">
+<meta property="og:description" content="Sleep debt tracking, 7-day readiness forecast, and deep sleep analysis — all from your own ring data, updated daily.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0d0f14">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -548,7 +548,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <div id="profile" class="page"></div>
 </main>
 
-<footer class="site-footer" id="appFooter" style="display:none">
+<footer class="site-footer" id="appFooter">
   <span class="footer-bot">⚡ Powered by SaintlyBot and Claude Code</span>
   <span class="sep">·</span>
   <a href="https://saintlydigital.com" target="_blank">saintlydigital.com</a>
@@ -559,7 +559,9 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <span class="sep">·</span>
   <a href="https://github.com/tbonepitt/oura-claude" target="_blank">GitHub ↗</a>
   <span class="sep">·</span>
-  Data provided by <a href="https://ouraring.com" target="_blank">Oura</a> · <a href="https://cloud.ouraring.com" target="_blank">View your Oura account ↗</a>
+  Data provided by <a href="https://ouraring.com" target="_blank" style="color:#2F4A73;font-weight:600">ŌURA</a>
+  <span class="sep">·</span>
+  <a href="https://cloud.ouraring.com" target="_blank">View your Oura account ↗</a>
 </footer>
 
 
@@ -2232,14 +2234,12 @@ async function loadData(){
     loader.classList.remove('visible');
     document.getElementById('appNav').style.display = '';
     document.getElementById('appMain').style.display = '';
-    document.getElementById('appFooter').style.display = '';
     render(d);
     showFeedbackWidget();
   } catch(e) {
     loader.classList.remove('visible');
     document.getElementById('appNav').style.display = '';
     document.getElementById('appMain').style.display = '';
-    document.getElementById('appFooter').style.display = '';
     track('dashboard_error');
     document.getElementById('insights').innerHTML='<div class="loading"><div style="color:var(--red)">⚠️ Could not load data. Check your token or try again.</div></div>';
   }
@@ -2415,7 +2415,7 @@ async function fetchStats() {
       const badge = document.getElementById('userCountBadge');
       const text  = document.getElementById('userCountText');
       if (badge && text) {
-        text.textContent = `🔬 ${data.users.toLocaleString()} Oura users tried this`;
+        text.textContent = `🔬 ${data.users.toLocaleString()} ring wearers tried this`;
         badge.style.display = 'block';
       }
     }
