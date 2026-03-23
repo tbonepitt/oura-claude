@@ -1187,7 +1187,7 @@ def feedback_endpoint():
     if vote not in ("up", "down"):
         return jsonify({"error": "invalid vote"}), 400
     uid  = f"fb-{int(datetime.now().timestamp()*1000)}-{os.urandom(2).hex()}"
-    text = comment if comment else f"Oura Edge feedback: {vote}"
+    text = comment if comment else f"Ring Edge feedback: {vote}"
     vector_request("/upsert-data", [{"id": uid, "data": text,
                                      "metadata": {"vote": vote, "comment": comment,
                                                   "ts": str(date.today())}}])

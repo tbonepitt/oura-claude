@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Oura Edge</title>
+<title>Ring Edge</title>
 <meta name="description" content="Deeper insights from your Oura Ring. 7-day readiness forecast, personal sleep correlations, anomaly detection and more.">
-<meta property="og:title" content="Oura Edge — Personal Sleep Intelligence">
+<meta property="og:title" content="Ring Edge — Personal Sleep Intelligence">
 <meta property="og:description" content="Deeper insights from your Oura Ring. 7-day readiness forecast, personal sleep correlations, anomaly detection.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0d0f14">
@@ -420,7 +420,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 <div id="setup-screen">
   <div class="setup-card">
     <div class="setup-logo">🩺</div>
-    <h2 class="setup-title">Oura Edge</h2>
+    <h2 class="setup-title">Ring Edge</h2>
     <p class="setup-sub">Your 24-hour sleep & recovery intelligence. Personalized correlations, 7-day readiness forecasts, sleep debt tracking, and anomaly detection — all from your own Oura data, updated daily.</p>
 
     <!-- Auth method tabs -->
@@ -472,7 +472,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 </div>
 
 <header>
-  <h1><span id="headerName">Your</span> Oura <span>Edge</span> <span onclick="openChangelog()" style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle;cursor:pointer" title="What's new in v4.0">v4.0 ✨</span></h1>
+  <h1><span id="headerName">Your</span> Ring <span>Edge</span> <span onclick="openChangelog()" style="font-size:11px;font-weight:600;background:rgba(99,102,241,.2);color:var(--accent);padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle;cursor:pointer" title="What's new in v4.0">v4.0 ✨</span></h1>
   <div class="header-right">
     <div class="dot"></div>
     <div class="date-badge" id="dateLabel">Loading…</div>
@@ -482,7 +482,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
       <div class="acct-dropdown" id="acctDropdown">
         <div class="acct-dropdown-header">
           <div class="acct-dropdown-name" id="acctName">My Account</div>
-          <div class="acct-dropdown-sub">Oura Edge</div>
+          <div class="acct-dropdown-sub">Ring Edge</div>
         </div>
         <button class="acct-item" onclick="refreshData()">
           <span class="acct-icon">↻</span> Refresh Data
@@ -559,7 +559,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
   <span class="sep">·</span>
   <a href="https://github.com/tbonepitt/oura-claude" target="_blank">GitHub ↗</a>
   <span class="sep">·</span>
-  Daily insights powered by the <a href="https://cloud.ouraring.com/v2/docs" target="_blank">Oura API</a>
+  Data provided by <a href="https://ouraring.com" target="_blank">Oura</a> · <a href="https://cloud.ouraring.com" target="_blank">View your Oura account ↗</a>
 </footer>
 
 
@@ -940,7 +940,7 @@ function render(d){
   // ── INSIGHTS PAGE ──────────────────────────────────────────────────────────
   document.getElementById('insights').innerHTML=`
   <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;font-size:13px;color:var(--muted);line-height:1.6">
-    <strong style="color:var(--text)">Your Oura Edge</strong> — 24-hour sleep & recovery intelligence built from your personal data patterns, not generic advice. Data reflects your most recent Oura sync.
+    <strong style="color:var(--text)">Your Ring Edge</strong> — 24-hour sleep & recovery intelligence built from your personal data patterns, not generic advice. Data reflects your most recent Oura sync.
   </div>
 
   ${recoveryIntelHTML(sleep_debt, debt_log, ri, d.tonight_card?.optimal_bed)}
@@ -2207,7 +2207,8 @@ async function loadData(){
     const d = await res.json();
     if (isDemo()) {
       // Demo mode — always reset to generic "Your"
-      document.title = "Your Oura Edge";
+      document.title = "Your Ring Edge";
+      document.getElementById('headerName').textContent = 'Your';
       document.getElementById('headerName').textContent = 'Your';
     } else if (d.user) {
       // Oura API returns email but not first_name — derive display name from email prefix
@@ -2215,7 +2216,7 @@ async function loadData(){
       if (fn) {
         // Capitalize first letter, handle dot/underscore separators (e.g. john.smith → John)
         const display = fn.charAt(0).toUpperCase() + fn.slice(1).replace(/[._-]./, m => m.toUpperCase());
-        document.title = display + "'s Oura Edge";
+        document.title = display + "'s Ring Edge";
         document.getElementById('headerName').textContent = display + "'s";
         document.getElementById('acctName').textContent = display;
         document.getElementById('acctAvatar').textContent = display.charAt(0).toUpperCase();
@@ -2431,7 +2432,7 @@ fetchStats();
 
   <div id="fbMain">
     <!-- Step 1: Vote -->
-    <div class="fb-label">How's Oura Edge?</div>
+    <div class="fb-label">How's Ring Edge?</div>
     <div class="fb-btns">
       <button class="fb-btn" id="fbUp"   onclick="selectVote('up')"   title="Loving it">👍 Loving it</button>
       <button class="fb-btn" id="fbDown" onclick="selectVote('down')" title="Needs work">👎 Needs work</button>
@@ -2476,7 +2477,7 @@ fetchStats();
       <h3>What's New</h3>
       <button onclick="closeChangelog()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">&times;</button>
     </div>
-    <div class="cl-sub">Release history for Oura Edge</div>
+    <div class="cl-sub">Release history for Ring Edge</div>
 
     <div class="changelog-ver">Everything built this weekend — March 2026</div>
     <ul>
