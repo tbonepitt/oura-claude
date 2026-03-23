@@ -353,8 +353,9 @@ def calc_sleep_debt(sleep_detail, target_hours=8.0):
     """Calculate cumulative sleep debt, ignoring naps and partial syncs under 3h."""
     debt_hours = 0.0; log = []
     for d in sleep_detail[-30:]:
-        actual = (d.get("total_sleep_duration") or 0) / 3600
-        if actual < 3.0:          # skip naps / partial ring syncs
+        raw = d.get("total_sleep_duration")
+        actual = raw / 3600 if raw is not None else 0.0
+        if raw is not None and actual < 3.0:   # skip naps / partial ring syncs
             continue
         nightly_debt = target_hours - actual
         debt_hours += nightly_debt
