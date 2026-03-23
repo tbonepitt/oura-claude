@@ -2261,8 +2261,6 @@ async function loadData(){
     if (isDemo()) {
       // Demo mode — always reset to generic "Your"
       document.title = "Your Ring Edge";
-      document.getElementById('headerName').textContent = 'Your';
-      document.getElementById('headerName').textContent = 'Your';
     } else if (d.user) {
       // Oura API returns email but not first_name — derive display name from email prefix
       const fn = d.user.first_name || (d.user.email ? d.user.email.split('@')[0] : '');
@@ -2270,9 +2268,10 @@ async function loadData(){
         // Capitalize first letter, handle dot/underscore separators (e.g. john.smith → John)
         const display = fn.charAt(0).toUpperCase() + fn.slice(1).replace(/[._-]./, m => m.toUpperCase());
         document.title = display + "'s Ring Edge";
-        document.getElementById('headerName').textContent = display + "'s";
-        document.getElementById('acctName').textContent = display;
-        document.getElementById('acctAvatar').textContent = display.charAt(0).toUpperCase();
+        const acctName = document.getElementById('acctName');
+        const acctAvatar = document.getElementById('acctAvatar');
+        if (acctName) acctName.textContent = display;
+        if (acctAvatar) acctAvatar.textContent = display.charAt(0).toUpperCase();
       }
     }
     track('dashboard_loaded', {
