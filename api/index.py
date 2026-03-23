@@ -67,23 +67,23 @@ def linreg(xs, ys):
 
 def clamp(v, lo, hi): return max(lo, min(hi, v))
 
-# ── Upstash Redis (KV store for feedback) ─────────────────────────────────────
+# ── Upstash Vector (feedback storage) ─────────────────────────────────────────
 
-def kv(cmd_args):
-    """Execute a Redis REST command against Upstash."""
-    url   = os.environ.get("UPSTASH_REDIS_REST_URL", "").rstrip("/")
-    token = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
+def vector_request(path, body):
+    """POST to Upstash Vector REST API."""
+    url   = os.environ.get("UPSTASH_VECTOR_REST_URL", "").rstrip("/")
+    token = os.environ.get("UPSTASH_VECTOR_REST_TOKEN", "")
     if not url or not token:
         return None
     try:
-        body = json.dumps(cmd_args).encode()
-        req  = Request(url, data=body, headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type":  "application/json",
-        })
-        with urlopen(req, timeout=4) as r:
-            return json.loads(r.read()).get("result")
-    except Exception:
+        req = Request(f"{url}{path}",
+                      data=json.dumps(body).encode(),
+                      headers={"Authorization": f"Bearer {token}",
+                               "Content-Type": "application/json"})
+        with urlopen(req, timeout=6) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        print(f"Vector error: {e}", flush=True)
         return None
 
 # ── Sleep Science ──────────────────────────────────────────────────────────────
@@ -1168,24 +1168,26 @@ def validate_endpoint():
 
 @app.route("/api/stats")
 def stats_endpoint():
-    """Return feedback vote counts from Upstash."""
-    up   = int(kv(["GET", "oura_edge:thumbs_up"])   or 0)
-    down = int(kv(["GET", "oura_edge:thumbs_down"]) or 0)
+    """Return feedback vote counts from Upstash Vector."""
+    res  = vector_request("/range", {"cursor": "0", "limit": 1000, "includeMetadata": True})
+    vecs = (res or {}).get("result", {}).get("vectors", [])
+    up   = sum(1 for v in vecs if (v.get("metadata") or {}).get("vote") == "up")
+    down = sum(1 for v in vecs if (v.get("metadata") or {}).get("vote") == "down")
     return jsonify({"thumbs_up": up, "thumbs_down": down})
 
 @app.route("/api/feedback", methods=["POST"])
 def feedback_endpoint():
-    """Store feedback vote + comment in Upstash Redis."""
+    """Store feedback in Upstash Vector with auto-embedding."""
     data    = request.get_json(silent=True) or {}
     vote    = data.get("vote", "")
     comment = str(data.get("comment", ""))[:500].strip()
     if vote not in ("up", "down"):
         return jsonify({"error": "invalid vote"}), 400
-    kv(["INCR", f"oura_edge:thumbs_{vote}"])
-    if comment:
-        entry = json.dumps({"vote": vote, "comment": comment, "ts": str(date.today())})
-        kv(["LPUSH", "oura_edge:comments", entry])
-        kv(["LTRIM", "oura_edge:comments", 0, 499])  # keep last 500
+    uid  = f"fb-{int(datetime.now().timestamp()*1000)}-{os.urandom(2).hex()}"
+    text = comment if comment else f"Oura Edge feedback: {vote}"
+    vector_request("/upsert-data", [{"id": uid, "data": text,
+                                     "metadata": {"vote": vote, "comment": comment,
+                                                  "ts": str(date.today())}}])
     return jsonify({"ok": True})
 
 @app.route("/api/demo")
