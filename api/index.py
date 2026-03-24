@@ -1221,7 +1221,7 @@ def oauth_authorize():
         "response_type": "code",
         "client_id": client_id,
         "redirect_uri": redirect_uri,
-        "scope": "email personal daily heartrate spo2Daily workout",
+        "scope": "email personal daily heartrate tag workout session spo2 ring_configuration stress heart_health",
     })
     return redirect(f"https://cloud.ouraring.com/oauth/authorize?{params}")
 
