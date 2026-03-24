@@ -10,17 +10,49 @@ from urllib.error import URLError
 from collections import defaultdict
 from flask import Flask, jsonify, request, redirect
 
-# ── In-memory rate limiter (best-effort; resets on cold start) ────────────────
+# ── In-memory rate limiter (best-effort within a single warm instance) ────────
+# NOTE: Vercel serverless spins up isolated containers per request burst, so
+# this cannot enforce hard limits across concurrent cold starts. It provides
+# meaningful protection against sequential abuse on warm instances.
 _rl: dict[str, list] = defaultdict(list)
 
+def _client_ip(req) -> str:
+    """Return the real client IP using Vercel's trusted headers.
+    X-Vercel-Forwarded-For is set by Vercel's proxy and is not spoofable by
+    the client. Falls back to rightmost X-Forwarded-For entry (also Vercel-added).
+    """
+    vercel_ip = req.headers.get("X-Vercel-Forwarded-For", "").split(",")[-1].strip()
+    if vercel_ip:
+        return vercel_ip
+    xff = req.headers.get("X-Forwarded-For", "")
+    if xff:
+        return xff.split(",")[-1].strip()
+    return req.remote_addr or "unknown"
+
 def _rate_limited(ip: str, max_req: int = 10, window: int = 60) -> bool:
-    now   = time.time()
+    now    = time.time()
     cutoff = now - window
     _rl[ip] = [t for t in _rl[ip] if t > cutoff]
     if len(_rl[ip]) >= max_req:
         return True
     _rl[ip].append(now)
     return False
+
+# ── Allowed OAuth redirect origins ───────────────────────────────────────────
+_ALLOWED_ORIGINS = {
+    "https://oura-claude.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:5000",
+}
+
+def _redirect_uri(req) -> str:
+    """Derive the OAuth redirect URI server-side from a trusted allowlist.
+    Never accept redirect_uri from the client — prevents open-redirect attacks.
+    """
+    origin = req.headers.get("Origin", "").rstrip("/")
+    if origin not in _ALLOWED_ORIGINS:
+        origin = "https://oura-claude.vercel.app"
+    return f"{origin}/auth/callback"
 
 app = Flask(__name__)
 
@@ -29,11 +61,21 @@ BASE = "https://api.ouraring.com/v2/usercollection"
 # ── Security headers on every API response ──────────────────────────────────
 @app.after_request
 def add_security_headers(response):
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options']        = 'DENY'
-    response.headers['Referrer-Policy']        = 'strict-origin-when-cross-origin'
-    response.headers['Permissions-Policy']     = 'geolocation=(), microphone=(), camera=()'
-    response.headers['Cache-Control']          = 'no-store'
+    response.headers['X-Content-Type-Options']  = 'nosniff'
+    response.headers['X-Frame-Options']         = 'DENY'
+    response.headers['Referrer-Policy']         = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy']      = 'geolocation=(), microphone=(), camera=()'
+    response.headers['Cache-Control']           = 'no-store'
+    response.headers['Strict-Transport-Security'] = 'max-age=63072000; includeSubDomains'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net va.vercel-scripts.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self' https://api.ouraring.com https://cloud.ouraring.com; "
+        "font-src 'self'; "
+        "frame-ancestors 'none'"
+    )
     return response
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -1169,7 +1211,7 @@ def generate_demo_data():
 @app.route("/api/validate")
 def validate_endpoint():
     """Quick token validation — calls personal_info, returns first_name or error."""
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    ip = _client_ip(request)
     if _rate_limited(ip, max_req=10, window=60):
         return jsonify({"valid": False, "error": "Too many requests"}), 429
     token = request.headers.get("X-Oura-Token", "").strip()
@@ -1188,6 +1230,9 @@ def validate_endpoint():
 @app.route("/api/stats")
 def stats_endpoint():
     """Return feedback vote counts from Upstash Vector."""
+    ip = _client_ip(request)
+    if _rate_limited(ip, max_req=10, window=60):
+        return jsonify({"error": "Too many requests"}), 429
     res  = vector_request("/range", {"cursor": "0", "limit": 1000, "includeMetadata": True})
     vecs = (res or {}).get("result", {}).get("vectors", [])
     up   = sum(1 for v in vecs if (v.get("metadata") or {}).get("vote") == "up")
@@ -1197,6 +1242,9 @@ def stats_endpoint():
 @app.route("/api/feedback", methods=["POST"])
 def feedback_endpoint():
     """Store feedback in Upstash Vector with auto-embedding."""
+    ip = _client_ip(request)
+    if _rate_limited(ip, max_req=5, window=60):
+        return jsonify({"error": "Too many requests"}), 429
     data    = request.get_json(silent=True) or {}
     vote    = data.get("vote", "")
     comment = str(data.get("comment", ""))[:500].strip()
@@ -1212,6 +1260,9 @@ def feedback_endpoint():
 @app.route("/api/demo")
 def demo_endpoint():
     """Returns fully realistic fictitious data for the preview/demo mode."""
+    ip = _client_ip(request)
+    if _rate_limited(ip, max_req=10, window=60):
+        return jsonify({"error": "Too many requests"}), 429
     return jsonify(generate_demo_data())
 
 @app.route("/api/data")
@@ -1231,7 +1282,8 @@ def oauth_authorize():
     client_id = os.environ.get("OURA_CLIENT_ID", "")
     if not client_id:
         return jsonify({"error": "OAuth not configured on this server. Use a Personal Access Token instead."}), 503
-    redirect_uri = request.args.get("redirect_uri", "")
+    # redirect_uri is derived server-side from a trusted allowlist — never from the client
+    redirect_uri = _redirect_uri(request)
     state        = request.args.get("state", "")
     params = urllib.parse.urlencode({
         "response_type": "code",
@@ -1245,16 +1297,17 @@ def oauth_authorize():
 @app.route("/api/oauth/token", methods=["POST"])
 def oauth_token_endpoint():
     """Exchange an OAuth authorization code for an access token."""
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    ip = _client_ip(request)
     if _rate_limited(ip, max_req=5, window=60):
         return jsonify({"error": "Too many requests"}), 429
     client_id     = os.environ.get("OURA_CLIENT_ID", "")
     client_secret = os.environ.get("OURA_CLIENT_SECRET", "")
     if not client_id or not client_secret:
         return jsonify({"error": "OAuth not configured on this server. Use a Personal Access Token instead."}), 503
-    data         = request.get_json(silent=True) or {}
-    code         = data.get("code", "").strip()
-    redirect_uri = data.get("redirect_uri", "").strip()
+    data = request.get_json(silent=True) or {}
+    code = data.get("code", "").strip()
+    # redirect_uri is derived server-side — never accepted from the client body
+    redirect_uri = _redirect_uri(request)
     if not code:
         return jsonify({"error": "Missing authorization code"}), 400
     payload = urllib.parse.urlencode({

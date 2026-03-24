@@ -2329,8 +2329,8 @@ function renderProfile(user, ring, ri) {
 
   const statBox = (label, value, color='var(--text)') => value != null
     ? `<div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:${color}">${value}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px">${label}</div>
+        <div style="font-size:22px;font-weight:800;color:${color}">${escH(String(value))}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px">${escH(label)}</div>
       </div>`
     : '';
 
@@ -2339,11 +2339,11 @@ function renderProfile(user, ring, ri) {
   el.innerHTML = `
   <div class="card">
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
-      <div style="width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0">${displayName.charAt(0)}</div>
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0">${escH(displayName.charAt(0))}</div>
       <div>
-        <div style="font-size:20px;font-weight:800">${displayName}</div>
-        ${u.email ? `<div style="font-size:13px;color:var(--muted);margin-top:2px">${u.email}</div>` : ''}
-        ${u.biological_sex ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;text-transform:capitalize">${u.biological_sex}</div>` : ''}
+        <div style="font-size:20px;font-weight:800">${escH(displayName)}</div>
+        ${u.email ? `<div style="font-size:13px;color:var(--muted);margin-top:2px">${escH(u.email)}</div>` : ''}
+        ${u.biological_sex ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;text-transform:capitalize">${escH(u.biological_sex)}</div>` : ''}
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px">
