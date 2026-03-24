@@ -441,7 +441,7 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
 
     <!-- Auth method tabs -->
     <div class="auth-tabs">
-      <button class="auth-tab" id="tab-oauth" disabled style="opacity:.45;cursor:not-allowed" title="Coming soon">Sign in with Oura <span style="font-size:10px;background:rgba(93,202,165,.2);color:var(--accent);padding:1px 6px;border-radius:4px;font-weight:700;vertical-align:middle">Soon</span></button>
+      <button class="auth-tab" id="tab-oauth" onclick="switchAuthTab('oauth')">Sign in with Oura</button>
       <button class="auth-tab active" id="tab-pat" onclick="switchAuthTab('pat')">Personal Access Token</button>
     </div>
 
