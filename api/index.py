@@ -3,12 +3,24 @@
 Token is read from the X-Oura-Token request header. Never stored server-side.
 """
 
-import json, os, math, random, urllib.parse
+import json, os, math, random, time, urllib.parse
 from datetime import date, timedelta, datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 from collections import defaultdict
 from flask import Flask, jsonify, request, redirect
+
+# ── In-memory rate limiter (best-effort; resets on cold start) ────────────────
+_rl: dict[str, list] = defaultdict(list)
+
+def _rate_limited(ip: str, max_req: int = 10, window: int = 60) -> bool:
+    now   = time.time()
+    cutoff = now - window
+    _rl[ip] = [t for t in _rl[ip] if t > cutoff]
+    if len(_rl[ip]) >= max_req:
+        return True
+    _rl[ip].append(now)
+    return False
 
 app = Flask(__name__)
 
@@ -1157,6 +1169,9 @@ def generate_demo_data():
 @app.route("/api/validate")
 def validate_endpoint():
     """Quick token validation — calls personal_info, returns first_name or error."""
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    if _rate_limited(ip, max_req=10, window=60):
+        return jsonify({"valid": False, "error": "Too many requests"}), 429
     token = request.headers.get("X-Oura-Token", "").strip()
     if not token:
         return jsonify({"valid": False, "error": "No token provided"}), 400
@@ -1217,17 +1232,22 @@ def oauth_authorize():
     if not client_id:
         return jsonify({"error": "OAuth not configured on this server. Use a Personal Access Token instead."}), 503
     redirect_uri = request.args.get("redirect_uri", "")
+    state        = request.args.get("state", "")
     params = urllib.parse.urlencode({
         "response_type": "code",
-        "client_id": client_id,
-        "redirect_uri": redirect_uri,
-        "scope": "email personal daily heartrate tag workout session spo2 ring_configuration stress heart_health",
+        "client_id":     client_id,
+        "redirect_uri":  redirect_uri,
+        "scope":         "email personal daily heartrate tag workout session spo2 ring_configuration stress heart_health",
+        "state":         state,
     })
     return redirect(f"https://cloud.ouraring.com/oauth/authorize?{params}")
 
 @app.route("/api/oauth/token", methods=["POST"])
 def oauth_token_endpoint():
     """Exchange an OAuth authorization code for an access token."""
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    if _rate_limited(ip, max_req=5, window=60):
+        return jsonify({"error": "Too many requests"}), 429
     client_id     = os.environ.get("OURA_CLIENT_ID", "")
     client_secret = os.environ.get("OURA_CLIENT_SECRET", "")
     if not client_id or not client_secret:

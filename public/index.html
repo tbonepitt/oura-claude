@@ -1822,7 +1822,9 @@ function switchAuthTab(tab) {
 // ── OAuth 2.0 ─────────────────────────────────────────────────────────────────
 function startOAuth() {
   const redirectUri = window.location.origin + '/auth/callback';
-  window.location.href = '/api/oauth/authorize?redirect_uri=' + encodeURIComponent(redirectUri);
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('oura_oauth_state', state);
+  window.location.href = '/api/oauth/authorize?redirect_uri=' + encodeURIComponent(redirectUri) + '&state=' + encodeURIComponent(state);
 }
 
 async function handleOAuthCallback() {
@@ -1840,6 +1842,19 @@ async function handleOAuthCallback() {
     switchAuthTab('oauth');
     const errEl = document.getElementById('oauth-error');
     errEl.textContent = '⚠️ Oura login was cancelled or denied. Try again.';
+    errEl.style.display = 'block';
+    return true;
+  }
+
+  // Verify OAuth state to prevent CSRF
+  const returnedState = params.get('state');
+  const savedState    = sessionStorage.getItem('oura_oauth_state');
+  sessionStorage.removeItem('oura_oauth_state');
+  if (!savedState || returnedState !== savedState) {
+    document.getElementById('setup-screen').style.display = 'flex';
+    switchAuthTab('oauth');
+    const errEl = document.getElementById('oauth-error');
+    errEl.textContent = '⚠️ Security check failed. Please try again.';
     errEl.style.display = 'block';
     return true;
   }
