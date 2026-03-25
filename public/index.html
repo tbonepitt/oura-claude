@@ -598,6 +598,9 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
       <!-- Personal records row -->
       <div id="scRecords" style="background:#1A1A18;border-radius:10px;padding:10px 14px;display:flex;gap:12px;margin-bottom:12px;justify-content:space-around"></div>
 
+      <!-- Personalised insight -->
+      <div id="scInsight" style="background:#0F6E5620;border:1px solid #5DCAA530;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#E8E6DF;line-height:1.4;display:none"></div>
+
       <!-- Footer -->
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="font-size:9px;color:#9C9A92">oura-claude.vercel.app</div>
@@ -2117,6 +2120,37 @@ function openStatsCard() {
       <div style="font-size:15px;font-weight:800;color:${r.color}">${r.val}</div>
       <div style="font-size:9px;color:#9C9A92;margin-top:2px;text-transform:uppercase;letter-spacing:0.4px">${r.label}</div>
     </div>`).join('<div style="width:1px;background:#2A2A27"></div>');
+
+  // Personalised insight — pick the most compelling signal
+  const insightEl = document.getElementById('scInsight');
+  const insight = (function() {
+    const tDir = hrv_traj.direction, tPct = Math.abs(hrv_traj.pct_change || 0);
+    const debt = debtH != null ? debtH : 0;
+    const r7 = avgR || 0;
+    const hrv7 = avgHrv || 0;
+
+    if (tDir === 'rising' && tPct >= 5)
+      return `📈 Your HRV has risen ${tPct}% over 3 weeks — your nervous system is actively recovering.`;
+    if (tDir === 'falling' && tPct >= 5)
+      return `⚠️ Your HRV has dropped ${tPct}% over 3 weeks — your body is under more stress than usual.`;
+    if (debt >= 10)
+      return `💳 You're carrying ${debt.toFixed(1)}h of sleep debt. It takes weeks to repay — tonight matters.`;
+    if (debt <= 0)
+      return `✅ You're sleep debt-free — you've been consistent and your body is showing it.`;
+    if (r7 >= 85)
+      return `🟢 Your 7-day readiness average of ${r7} puts you in peak recovery territory.`;
+    if (r7 < 60)
+      return `🔴 A 7-day readiness average of ${r7} means your body needs more recovery time.`;
+    if (hrv7 > 0)
+      return `💡 Your average HRV of ${hrv7} ms is your personal baseline — track it weekly to spot trends early.`;
+    return ``;
+  })();
+  if (insight) {
+    insightEl.textContent = insight;
+    insightEl.style.display = 'block';
+  } else {
+    insightEl.style.display = 'none';
+  }
 
   // Show share button if Web Share API available
   document.getElementById('scShareBtn').style.display = navigator.share ? 'block' : 'none';
