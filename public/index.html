@@ -576,6 +576,18 @@ footer.site-footer .sep{margin:0 8px;opacity:.3}
         </div>
       </div>
 
+      <!-- Energy Potential -->
+      <div style="background:#1A1A18;border-radius:12px;padding:12px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:9px;color:#9C9A92;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">⚡ Energy Potential</div>
+          <div id="scEnergy" style="font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;color:#5DCAA5">—</div>
+          <div id="scEnergyLabel" style="font-size:10px;color:#9C9A92;margin-top:4px">today</div>
+        </div>
+        <div id="scEnergyBar" style="width:80px;height:8px;background:#2A2A28;border-radius:4px;overflow:hidden">
+          <div id="scEnergyFill" style="height:100%;width:0%;background:#5DCAA5;border-radius:4px;transition:width .4s"></div>
+        </div>
+      </div>
+
       <!-- Stats row -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
         <div style="background:#1A1A18;border-radius:10px;padding:12px 10px;text-align:center">
@@ -781,7 +793,7 @@ function fmtActivity(act){
 function render(d){
   destroyAll();
   globalData=d;
-  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,correlation_insights:ci,checkin_insights,forecast,anomalies,sleep_debt,debt_log,recovery_intel:ri,heatmap,ring,sleep_recommendation,resilience,workouts,data_dates}=d;
+  const{days,scores,latest,avgs,prediction,hrv_delta,dow,correlations,correlation_insights:ci,checkin_insights,forecast,anomalies,sleep_debt,debt_log,energy_potential:ep,recovery_intel:ri,heatmap,ring,sleep_recommendation,resilience,workouts,data_dates}=d;
   const activityLag = data_dates?.activity_is_yesterday;
   const N30=30;
   const labels30=shortDates(days,N30);
@@ -1074,6 +1086,7 @@ function render(d){
     <strong style="color:var(--text)">Your Ring Edge</strong> — 24-hour sleep & recovery intelligence built from your personal data patterns, not generic advice. Data reflects your most recent Oura sync.
   </div>
 
+  ${energyPotentialHTML(ep)}
   ${recoveryIntelHTML(sleep_debt, debt_log, ri, d.tonight_card?.optimal_bed)}
   ${weeklyPatternsHTML(dow, ri)}
 
@@ -1124,6 +1137,42 @@ function trajectoryBadge(direction, changePts){
   };
   const c = cfg[direction] || cfg.stable;
   return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:${c.color};background:${c.bg};padding:3px 8px;border-radius:20px">${c.icon} ${c.label}</span>`;
+}
+
+function energyPotentialHTML(ep){
+  if (!ep) return '';
+  const colorMap = {green:'#22c55e', teal:'var(--accent)', yellow:'#f59e0b', red:'#ef4444'};
+  const bgMap    = {green:'rgba(34,197,94,.1)', teal:'rgba(93,202,165,.1)', yellow:'rgba(245,158,11,.1)', red:'rgba(239,68,68,.1)'};
+  const c = colorMap[ep.color] || 'var(--accent)';
+  const bg = bgMap[ep.color] || 'rgba(93,202,165,.1)';
+  const arc = Math.round(ep.score / 100 * 283); // circumference of r=45 circle ≈ 283
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">⚡ ENERGY POTENTIAL</div>
+    <div style="display:flex;align-items:center;gap:28px;padding:8px 0 4px">
+      <div style="position:relative;width:110px;height:110px;flex-shrink:0">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="45" fill="none" stroke="var(--border)" stroke-width="8"/>
+          <circle cx="55" cy="55" r="45" fill="none" stroke="${c}" stroke-width="8"
+            stroke-dasharray="${arc} 283" stroke-dashoffset="71"
+            stroke-linecap="round" transform="rotate(-90 55 55)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span style="font-size:28px;font-weight:500;color:${c};line-height:1">${ep.score}</span>
+          <span style="font-size:11px;color:var(--muted)">/ 100</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:26px;font-weight:500;color:${c};margin-bottom:4px">${ep.label}</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;max-width:200px">Based on your readiness, HRV balance, and 30-night sleep debt.</div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${bg};color:${c};font-weight:500">Readiness 40%</span>
+          <span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${bg};color:${c};font-weight:500">HRV 30%</span>
+          <span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${bg};color:${c};font-weight:500">Sleep debt 30%</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 
 function recoveryIntelHTML(debt, log, ri, optimalBed){
@@ -2064,13 +2113,24 @@ function closeModal() {
 function openStatsCard() {
   const d = globalData;
   if (!d) return;
-  const {avgs, sleep_debt, recovery_intel: ri, dow} = d;
+  const {avgs, sleep_debt, energy_potential: ep, recovery_intel: ri, dow} = d;
   const pr = ri?.personal_records || {};
   const hrv_traj = ri?.hrv_trajectory || {};
 
   // User name
   const rawName = d.user?.first_name || (d.user?.email ? d.user.email.split('@')[0] : '');
   document.getElementById('scUserName').textContent = rawName ? rawName + "'s stats" : '';
+
+  // Energy Potential
+  if (ep) {
+    const epColorMap = {green:'#22c55e', teal:'#5DCAA5', yellow:'#f59e0b', red:'#ef4444'};
+    const epC = epColorMap[ep.color] || '#5DCAA5';
+    document.getElementById('scEnergy').textContent = ep.score;
+    document.getElementById('scEnergy').style.color = epC;
+    document.getElementById('scEnergyLabel').textContent = ep.label + ' · today';
+    document.getElementById('scEnergyFill').style.width = ep.score + '%';
+    document.getElementById('scEnergyFill').style.background = epC;
+  }
 
   // Sleep debt (hero stat) — sleep_debt is in minutes
   const debtH = sleep_debt != null ? (sleep_debt / 60) : null;

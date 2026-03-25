@@ -403,6 +403,18 @@ def detect_anomalies(days, s_map, r_map, a_map, sleep_scores, ready_scores, act_
         if k not in seen: seen[k] = a
     return sorted(seen.values(), key=lambda x: x["date"], reverse=True)[:8]
 
+def calc_energy_potential(readiness, hrv_balance, sleep_debt_hrs):
+    """Composite 0-100 energy score: readiness 40%, HRV balance 30%, sleep debt 30%."""
+    debt_score = max(0, min(100, 100 - (sleep_debt_hrs * 8)))
+    r = readiness or 75; h = hrv_balance or 75
+    score = round(0.40 * r + 0.30 * h + 0.30 * debt_score)
+    score = max(10, min(100, score))
+    if score >= 80:   label, color = "High",  "green"
+    elif score >= 65: label, color = "Good",  "teal"
+    elif score >= 50: label, color = "Okay",  "yellow"
+    else:             label, color = "Low",   "red"
+    return {"score": score, "label": label, "color": color}
+
 def calc_sleep_debt(sleep_detail, target_hours=8.0):
     """Calculate cumulative sleep debt, ignoring naps and partial syncs under 3h."""
     debt_hours = 0.0; log = []
@@ -844,6 +856,8 @@ def build_data(token):
     anomalies=detect_anomalies(days,s_map,r_map,a_map,sleep_scores,ready_scores,act_scores)
     sleep_debt,debt_log=calc_sleep_debt(detail)
     recovery_intel=calc_recovery_intelligence(detail,ready,sleep,hrv_series,debt_log,sleep_debt)
+    energy_potential=calc_energy_potential(
+        latest_ready.get("score"), latest_ready.get("contributors",{}).get("hrv_balance"), sleep_debt)
 
     resting_hr_timeline=[{"t":h["timestamp"][:16],"bpm":h["bpm"]} for h in hr_data if h.get("source")=="rest" and h.get("bpm")]
 
@@ -893,6 +907,7 @@ def build_data(token):
         "correlations":corrs,"correlation_insights":correlation_insights,
         "resting_hr":resting_hr_timeline[-200:],"checkin_insights":[],
         "forecast":forecast,"anomalies":anomalies,"sleep_debt":sleep_debt,"debt_log":debt_log,
+        "energy_potential":energy_potential,
         "recovery_intel":recovery_intel,
         "heatmap":heatmap,"hypnogram":hypnogram,"deep_decoder":deep_decoder,"tonight_card":tonight_card,
         "sleep_recommendation": sleep_recommendation,
